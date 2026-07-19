@@ -165,6 +165,8 @@ tr:hover td{background:rgba(10,22,40,.015);}
 .balance-card .row{display:flex;justify-content:space-between;font-size:.76rem;color:var(--text-3);margin-top:.35rem;}
 .balance-card .row strong{color:var(--text);}
 .balance-card .due{margin-top:.4rem;font-family:var(--font-head);font-size:1.15rem;}
+.alert-item{cursor:pointer;font-size:.85rem;color:var(--warn);display:flex;align-items:center;gap:.5rem;padding:.45rem .5rem;border-radius:var(--r-sm);transition:var(--t);}
+.alert-item:hover{background:rgba(160,92,0,.1);}
 .due.pos{color:var(--error);}
 .due.zero{color:var(--success);}
 
@@ -229,6 +231,7 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="users" id="navUsers"><i class="fa-solid fa-users"></i><span>Users</span></div>
       <div class="nav-item" data-page="items"><i class="fa-solid fa-box"></i><span>Items</span></div>
       <div class="nav-item" data-page="locations"><i class="fa-solid fa-location-dot"></i><span>Locations</span></div>
+      <div class="nav-item" data-page="clients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
       <div class="nav-item" data-page="assets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
       <div class="nav-item" data-page="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></div>
       <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
@@ -261,6 +264,7 @@ body.no-scroll{overflow:hidden;}
   <main class="main">
 
     <section class="page active" id="page-dashboard">
+      <div id="dashAlerts"></div>
       <div class="stats" id="dashStats"></div>
       <div class="card">
         <div class="panel-head"><h2>Balance Owed to Crew</h2><p>Liability recorded minus payments made, per crew member.</p></div>
@@ -273,7 +277,7 @@ body.no-scroll{overflow:hidden;}
         <div class="panel-head"><h2>Create Login</h2><p>Give a crew member (or another admin) a login ID and password.</p></div>
         <form id="userForm" class="form-grid">
           <div class="field"><label>Full Name</label><input class="input" id="userName" required></div>
-          <div class="field"><label>Email</label><input class="input" type="email" id="userLoginId" required placeholder="e.g. example@gmail.com"></div>
+          <div class="field"><label>Email</label><input class="input" type="email" id="userLoginId" required placeholder="e.g. priya@brandshark.com"></div>
           <div class="field"><label>Password</label><input class="input" type="password" id="userPassword" minlength="6" required></div>
           <div class="field"><label>Role</label><select class="input" id="userRole"><option value="crew">Crew Member</option><option value="admin">Admin</option></select></div>
           <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit" id="userSubmitBtn"><i class="fa-solid fa-user-plus"></i> Create Login</button></div>
@@ -314,6 +318,20 @@ body.no-scroll{overflow:hidden;}
       </div>
     </section>
 
+    <section class="page" id="page-clients">
+      <div class="card panel">
+        <div class="panel-head"><h2>Add Client</h2><p>Tag expenses and revenue to a client to see profitability per account.</p></div>
+        <form id="clientForm" class="form-grid">
+          <div class="field"><label>Client Name</label><input class="input" id="clientName" required placeholder="e.g. Acme FMCG"></div>
+          <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit"><i class="fa-solid fa-plus"></i> Add Client</button></div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Client List</h2></div>
+        <div id="clientsTableWrap"></div>
+      </div>
+    </section>
+
     <section class="page" id="page-assets">
       <div class="card panel">
         <div class="panel-head"><h2>Add / Update Asset Stock</h2><p>Select an item and location — quantity adds to existing stock there.</p></div>
@@ -338,6 +356,7 @@ body.no-scroll{overflow:hidden;}
           <div class="field"><label>Date</label><input class="input" type="date" id="expDate" required></div>
           <div class="field"><label>Amount (₹)</label><input class="input" type="number" id="expAmount" min="0" step="0.01" required></div>
           <div class="field"><label>Crew Member</label><select class="input" id="expCrew"><option value="">General / Not crew-specific</option></select></div>
+          <div class="field"><label>Client</label><select class="input" id="expClient"><option value="">No client / Internal</option></select></div>
           <div class="field"><label>Category</label>
             <select class="input" id="expCategory">
               <option>Equipment</option><option>Travel</option><option>Software</option><option>Ads &amp; Promotion</option><option>Food</option><option>Misc</option>
@@ -360,6 +379,7 @@ body.no-scroll{overflow:hidden;}
           <h2>Expense History</h2>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
             <select class="input" id="expFilterCrew" style="width:auto;" onchange="loadExpensesPage()"><option value="">All crew</option></select>
+            <select class="input" id="expFilterClient" style="width:auto;" onchange="loadExpensesPage()"><option value="">All clients</option></select>
             <button class="btn btn-secondary" onclick="exportExpensesExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
           </div>
         </div>
@@ -374,6 +394,7 @@ body.no-scroll{overflow:hidden;}
           <div class="field"><label>Source</label><select class="input" id="revSource"><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option></select></div>
           <div class="field"><label>Date</label><input class="input" type="date" id="revDate" required></div>
           <div class="field"><label>Amount (₹)</label><input class="input" type="number" min="0" step="0.01" id="revAmount" required></div>
+          <div class="field"><label>Client</label><select class="input" id="revClient"><option value="">No client / Internal</option></select></div>
           <div class="field" style="grid-column:1/-1;"><label>Description</label><input class="input" id="revDescription" placeholder="e.g. Brand deal, AdSense payout"></div>
           <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
             <button class="btn btn-gold" type="submit" id="revSubmitBtn"><i class="fa-solid fa-plus"></i> Add Revenue</button>
@@ -455,12 +476,20 @@ body.no-scroll{overflow:hidden;}
         <div class="stats" id="pnlStats" style="margin-top:1rem;"></div>
       </div>
       <div class="card">
+        <div class="panel-head"><h2>Revenue vs Expenses Trend</h2></div>
+        <div id="pnlTrendChart" style="margin-top:.8rem;"></div>
+      </div>
+      <div class="card">
         <div class="panel-head"><h2>Monthly Breakdown</h2></div>
         <div id="pnlMonthlyWrap"></div>
       </div>
       <div class="card">
         <div class="panel-head"><h2>Expenses by Category</h2></div>
         <div id="pnlCategoryWrap"></div>
+      </div>
+      <div class="card">
+        <div class="panel-head"><h2>By Client</h2><p>Revenue and expenses tagged to each client, for this date range.</p></div>
+        <div id="pnlClientWrap"></div>
       </div>
     </section>
 
@@ -530,13 +559,14 @@ window.adaCurrentRole = null;
 window.adaProfile = null;
 window.__creatingAdmin = false;
 window.__adminLaunched = false;
-let _users=[], _items=[], _locations=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[];
+let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[];
 
 const pageConfig = {
   dashboard:{t:'Dashboard', s:'Overview of crew finances and assets.'},
   users:{t:'Users', s:'Manage portal logins.'},
   items:{t:'Items', s:'Master list of asset types.'},
   locations:{t:'Locations', s:'Where assets are stored or deployed.'},
+  clients:{t:'Clients', s:'Tag expenses and revenue to a client.'},
   assets:{t:'Assets', s:'Track equipment quantity by location.'},
   expenses:{t:'Expenses', s:'Log spends with bills attached.'},
   revenue:{t:'Revenue', s:'Income from YouTube and Instagram.'},
@@ -712,7 +742,7 @@ window.showAdminPage = function(name){
   document.getElementById('pageSubtitle').textContent = pageConfig[name].s;
   const loaders = {
     dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
-    locations: loadLocationsPage, assets: loadAssetsPage, expenses: loadExpensesPage,
+    locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage,
     pnl: loadPnLPage
   };
@@ -724,6 +754,7 @@ function wireForms(){
   document.getElementById('userForm').addEventListener('submit', onUserFormSubmit);
   document.getElementById('itemForm').addEventListener('submit', onItemFormSubmit);
   document.getElementById('locationForm').addEventListener('submit', onLocationFormSubmit);
+  document.getElementById('clientForm').addEventListener('submit', onClientFormSubmit);
   document.getElementById('assetForm').addEventListener('submit', onAssetFormSubmit);
   document.getElementById('expenseForm').addEventListener('submit', onExpenseFormSubmit);
   document.getElementById('revenueForm').addEventListener('submit', onRevenueFormSubmit);
@@ -745,10 +776,22 @@ async function ensureUsersLoaded(){
   const snap = await getDocs(collection(db,'ada_users'));
   _users = snap.docs.map(d=>({id:d.id,...d.data()}));
 }
+function clientOptionsHtml(selected){
+  return _clients.map(c=>`<option value="${c.id}" ${c.id===selected?'selected':''}>${escHtml(c.name)}</option>`).join('');
+}
+function clientNameOf(id){
+  const c = _clients.find(x=>x.id===id);
+  return c ? c.name : '';
+}
+async function ensureClientsLoaded(){
+  const snap = await getDocs(collection(db,'ada_clients'));
+  _clients = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+}
 
 // ═══════════════════ DASHBOARD ═══════════════════
 async function loadDashboardPage(){
   const wrap = document.getElementById('dashStats');
+  const alertsEl = document.getElementById('dashAlerts');
   wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
     const [revSnap, expSnap, assetSnap] = await Promise.all([
@@ -771,6 +814,22 @@ async function loadDashboardPage(){
       <div class="stat-card"><div class="stat-label">Active Crew</div><div class="stat-value">${crewCount}</div></div>
     `;
     await renderBalanceGrid('dashBalanceGrid');
+
+    // Alerts: crew with a balance due, assets low on stock
+    const balances = await computeCrewBalances();
+    const crewWithDue = balances.filter(b=>b.balance > 0);
+    const lowStock = assets.filter(a=>Number(a.quantity||0) <= 1);
+    const alertItems = [];
+    if (crewWithDue.length) {
+      alertItems.push(`<div class="alert-item" onclick="showAdminPage('liability')"><i class="fa-solid fa-triangle-exclamation"></i> ${crewWithDue.length} crew member${crewWithDue.length>1?'s':''} with a balance due</div>`);
+    }
+    if (lowStock.length) {
+      alertItems.push(`<div class="alert-item" onclick="showAdminPage('assets')"><i class="fa-solid fa-triangle-exclamation"></i> ${lowStock.length} asset${lowStock.length>1?'s':''} low on stock (1 or fewer at a location)</div>`);
+    }
+    alertsEl.innerHTML = alertItems.length ? `<div class="card" style="border-color:rgba(160,92,0,.3);background:var(--warn-bg);">
+      <div class="panel-head"><h2 style="color:var(--warn);font-size:1rem;"><i class="fa-solid fa-bell"></i> Needs attention</h2></div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.6rem;">${alertItems.join('')}</div>
+    </div>` : '';
   } catch(err) {
     wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading dashboard.</h3><p>${escHtml(err.message)}</p></div>`;
   }
@@ -934,6 +993,36 @@ window.deleteLocation = async function(id){
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
+// ═══════════════════ CLIENTS ═══════════════════
+async function loadClientsPage(){
+  const wrap = document.getElementById('clientsTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    await ensureClientsLoaded();
+    if (!_clients.length) { wrap.innerHTML = `<div class="empty"><h3>No clients yet.</h3><p>Add clients to tag expenses and revenue by account.</p></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>
+      ${_clients.map(c=>`<tr><td><strong>${escHtml(c.name)}</strong></td>
+        <td><button class="mini-btn mini-btn-danger" onclick="deleteClient('${c.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading clients.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+async function onClientFormSubmit(e){
+  e.preventDefault();
+  const name = document.getElementById('clientName').value.trim();
+  try {
+    const id = 'client_'+Date.now();
+    await setDoc(doc(db,'ada_clients',id), { name, createdAt:new Date().toISOString() });
+    document.getElementById('clientForm').reset();
+    showToast('Client added.');
+    loadClientsPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+}
+window.deleteClient = async function(id){
+  if (!confirm('Delete this client? Expenses and revenue already tagged to it will keep their stored name.')) return;
+  try { await deleteDoc(doc(db,'ada_clients',id)); showToast('Client deleted.'); loadClientsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
 // ═══════════════════ ASSETS ═══════════════════
 async function loadAssetsPage(){
   const wrap = document.getElementById('assetsTableWrap');
@@ -1057,6 +1146,7 @@ async function loadExpensesPage(){
   wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
     await ensureUsersLoaded();
+    await ensureClientsLoaded();
     const crewSel = document.getElementById('expCrew');
     const filterSel = document.getElementById('expFilterCrew');
     const prevExpCrew = crewSel.value;
@@ -1067,17 +1157,30 @@ async function loadExpensesPage(){
     crewSel.value = prevExpCrew;
     filterSel.value = prevFilterCrew;
 
+    const clientSel = document.getElementById('expClient');
+    const filterClientSel = document.getElementById('expFilterClient');
+    const prevExpClient = clientSel.value;
+    const prevFilterClient = filterClientSel.value;
+    const clientOpts = clientOptionsHtml('');
+    clientSel.innerHTML = '<option value="">No client / Internal</option>' + clientOpts;
+    filterClientSel.innerHTML = '<option value="">All clients</option>' + clientOpts;
+    clientSel.value = prevExpClient;
+    filterClientSel.value = prevFilterClient;
+
     const snap = await getDocs(collection(db,'ada_expenses'));
     _expenses = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     const filterCrew = filterSel.value;
-    const list = filterCrew ? _expenses.filter(x=>x.crewId===filterCrew) : _expenses;
+    const filterClient = filterClientSel.value;
+    let list = filterCrew ? _expenses.filter(x=>x.crewId===filterCrew) : _expenses;
+    if (filterClient) list = list.filter(x=>x.clientId===filterClient);
     if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Description</th><th>Bill</th><th></th></tr></thead><tbody>
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Client</th><th>Description</th><th>Bill</th><th></th></tr></thead><tbody>
       ${list.map(x=>`<tr>
         <td>${formatDate(x.date)}</td>
         <td><strong>${formatCurrency(x.amount)}</strong></td>
         <td>${escHtml(x.category||'—')}</td>
         <td>${x.crewId ? escHtml(x.crewName||crewName(x.crewId)) : '<span style="color:var(--text-3);">General</span>'}</td>
+        <td>${x.clientId ? escHtml(x.clientName||clientNameOf(x.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
         <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
         <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
         <td style="display:flex;gap:.3rem;">
@@ -1096,6 +1199,7 @@ window.editExpense = function(id){
   document.getElementById('expDate').value = x.date || '';
   document.getElementById('expAmount').value = x.amount || '';
   document.getElementById('expCrew').value = x.crewId || '';
+  document.getElementById('expClient').value = x.clientId || '';
   document.getElementById('expCategory').value = x.category || 'Equipment';
   document.getElementById('expDescription').value = x.description || '';
   _pendingBill = null;
@@ -1128,12 +1232,14 @@ async function onExpenseFormSubmit(e){
   const date = document.getElementById('expDate').value;
   const amount = Number(document.getElementById('expAmount').value);
   const crewId = document.getElementById('expCrew').value;
+  const clientId = document.getElementById('expClient').value;
   const category = document.getElementById('expCategory').value;
   const description = document.getElementById('expDescription').value.trim();
   try {
     const data = {
       date, amount, category, description,
-      crewId: crewId || null, crewName: crewId ? crewName(crewId) : ''
+      crewId: crewId || null, crewName: crewId ? crewName(crewId) : '',
+      clientId: clientId || null, clientName: clientId ? clientNameOf(clientId) : ''
     };
     if (_pendingBill) { data.billBase64 = _pendingBill.base64; data.billFileName = _pendingBill.fileName; data.billFileType = _pendingBill.fileType; }
     if (editing) {
@@ -1166,7 +1272,7 @@ window.deleteExpense = async function(id){
 };
 window.exportExpensesExcel = function(){
   if (!_expenses.length) { showToast('No expenses to export.', true); return; }
-  const rows = _expenses.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Description:x.description||'' }));
+  const rows = _expenses.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Client:x.clientName||'', Description:x.description||'' }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
@@ -1178,6 +1284,12 @@ async function loadRevenuePage(){
   const wrap = document.getElementById('revenueTableWrap');
   wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
+    await ensureClientsLoaded();
+    const clientSel = document.getElementById('revClient');
+    const prevRevClient = clientSel.value;
+    clientSel.innerHTML = '<option value="">No client / Internal</option>' + clientOptionsHtml('');
+    clientSel.value = prevRevClient;
+
     const snap = await getDocs(collection(db,'ada_revenue'));
     _revenue = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     const yt = _revenue.filter(r=>r.source==='YouTube').reduce((s,r)=>s+Number(r.amount||0),0);
@@ -1188,11 +1300,12 @@ async function loadRevenuePage(){
       <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value pos">${formatCurrency(yt+ig)}</div></div>
     `;
     if (!_revenue.length) { wrap.innerHTML = `<div class="empty"><h3>No revenue recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Description</th><th></th></tr></thead><tbody>
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Client</th><th>Description</th><th></th></tr></thead><tbody>
       ${_revenue.map(r=>`<tr>
         <td>${formatDate(r.date)}</td>
         <td><span class="pill pill-${r.source.toLowerCase()}">${escHtml(r.source)}</span></td>
         <td><strong>${formatCurrency(r.amount)}</strong></td>
+        <td>${r.clientId ? escHtml(r.clientName||clientNameOf(r.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
         <td style="font-size:.8rem;">${escHtml(r.description||'—')}</td>
         <td style="display:flex;gap:.3rem;">
           <button class="mini-btn" onclick="editRevenue('${r.id}')"><i class="fa-solid fa-pen"></i></button>
@@ -1210,6 +1323,7 @@ window.editRevenue = function(id){
   document.getElementById('revSource').value = r.source || 'YouTube';
   document.getElementById('revDate').value = r.date || '';
   document.getElementById('revAmount').value = r.amount || '';
+  document.getElementById('revClient').value = r.clientId || '';
   document.getElementById('revDescription').value = r.description || '';
   document.getElementById('revSubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Revenue';
   document.getElementById('revCancelEditBtn').style.display = '';
@@ -1230,12 +1344,16 @@ async function onRevenueFormSubmit(e){
   const source = document.getElementById('revSource').value;
   const date = document.getElementById('revDate').value;
   const amount = Number(document.getElementById('revAmount').value);
+  const clientId = document.getElementById('revClient').value;
   const description = document.getElementById('revDescription').value.trim();
   try {
+    const data = { source, date, amount, description, clientId: clientId || null, clientName: clientId ? clientNameOf(clientId) : '' };
     if (editing) {
-      await updateDoc(doc(db,'ada_revenue',editing), { source, date, amount, description });
+      await updateDoc(doc(db,'ada_revenue',editing), data);
     } else {
-      await setDoc(doc(db,'ada_revenue','rev_'+Date.now()), { source, date, amount, description, createdAt:new Date().toISOString(), createdBy: window.adaCurrentUser?.uid||null });
+      data.createdAt = new Date().toISOString();
+      data.createdBy = window.adaCurrentUser?.uid||null;
+      await setDoc(doc(db,'ada_revenue','rev_'+Date.now()), data);
     }
     cancelRevenueEdit();
     showToast(editing ? 'Revenue updated.' : 'Revenue added.');
@@ -1250,7 +1368,7 @@ window.deleteRevenue = async function(id){
 };
 window.exportRevenueExcel = function(){
   if (!_revenue.length) { showToast('No revenue to export.', true); return; }
-  const rows = _revenue.map(r=>({ Date:r.date, Source:r.source, Amount:r.amount, Description:r.description||'' }));
+  const rows = _revenue.map(r=>({ Date:r.date, Source:r.source, Amount:r.amount, Client:r.clientName||'', Description:r.description||'' }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Revenue');
@@ -1407,10 +1525,50 @@ window.deletePayment = async function(id){
 };
 
 // ═══════════════════ P&L ═══════════════════
+function renderPnLTrendChart(containerId, sortedMonths, months){
+  const el = document.getElementById(containerId);
+  if (!sortedMonths.length) { el.innerHTML = `<div class="empty"><h3>No data in this range.</h3></div>`; return; }
+  const w = 700, h = 240, padL = 46, padB = 30, padT = 10, padR = 10;
+  const chartW = w - padL - padR, chartH = h - padT - padB;
+  const maxVal = Math.max(1, ...sortedMonths.map(m=>Math.max(months[m].rev, months[m].exp)));
+  const groupW = chartW / sortedMonths.length;
+  const barW = Math.max(4, Math.min(26, groupW/2 - 6));
+  const GOLD = '#C9A84C', RED = '#C0392B';
+  let gridLines = '';
+  const ySteps = 4;
+  for (let i=0;i<=ySteps;i++){
+    const y = padT + chartH - (chartH*i/ySteps);
+    const val = Math.round(maxVal*i/ySteps);
+    const label = val>=1000 ? (val/1000).toFixed(1)+'k' : String(val);
+    gridLines += `<line x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}" stroke="rgba(10,22,40,0.08)" stroke-width="1"/>`;
+    gridLines += `<text x="${padL-8}" y="${y+3}" font-size="10" fill="#9BA3AE" text-anchor="end">${label}</text>`;
+  }
+  let bars = '', labels = '';
+  sortedMonths.forEach((m,idx)=>{
+    const gx = padL + idx*groupW;
+    const revH = (months[m].rev/maxVal)*chartH;
+    const expH = (months[m].exp/maxVal)*chartH;
+    const revX = gx + groupW/2 - barW - 3;
+    const expX = gx + groupW/2 + 3;
+    bars += `<rect x="${revX}" y="${padT+chartH-revH}" width="${barW}" height="${Math.max(revH,0)}" fill="${GOLD}" rx="2"><title>${m} Revenue: ${formatCurrency(months[m].rev)}</title></rect>`;
+    bars += `<rect x="${expX}" y="${padT+chartH-expH}" width="${barW}" height="${Math.max(expH,0)}" fill="${RED}" rx="2"><title>${m} Expenses: ${formatCurrency(months[m].exp)}</title></rect>`;
+    labels += `<text x="${gx+groupW/2}" y="${h-10}" font-size="10" fill="#4A5568" text-anchor="middle">${m.slice(5)}/${m.slice(2,4)}</text>`;
+  });
+  el.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:260px;display:block;" preserveAspectRatio="xMidYMid meet">
+      ${gridLines}${bars}${labels}
+    </svg>
+    <div style="display:flex;gap:1.2rem;margin-top:.5rem;font-size:.78rem;color:var(--text-2);">
+      <span><span style="display:inline-block;width:10px;height:10px;background:${GOLD};border-radius:2px;margin-right:5px;"></span>Revenue</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:${RED};border-radius:2px;margin-right:5px;"></span>Expenses</span>
+    </div>`;
+}
+
 async function loadPnLPage(){
   const statsWrap = document.getElementById('pnlStats');
   const monthlyWrap = document.getElementById('pnlMonthlyWrap');
   const catWrap = document.getElementById('pnlCategoryWrap');
+  const clientWrap = document.getElementById('pnlClientWrap');
   statsWrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
     const from = document.getElementById('pnlFrom').value;
@@ -1433,6 +1591,7 @@ async function loadPnLPage(){
     revenue.forEach(r=>{ const m=(r.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0}; months[m].rev+=Number(r.amount||0); });
     expenses.forEach(x=>{ const m=(x.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0}; months[m].exp+=Number(x.amount||0); });
     const sortedMonths = Object.keys(months).sort();
+    renderPnLTrendChart('pnlTrendChart', sortedMonths, months);
     if (!sortedMonths.length) { monthlyWrap.innerHTML = `<div class="empty"><h3>No data in this range.</h3></div>`; }
     else {
       monthlyWrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead><tbody>
@@ -1449,7 +1608,18 @@ async function loadPnLPage(){
         ${catKeys.map(c=>`<tr><td>${escHtml(c)}</td><td><strong>${formatCurrency(cats[c])}</strong></td></tr>`).join('')}
       </tbody></table></div>`;
     }
-    window._pnlExport = { revenue, expenses, months, sortedMonths, cats, catKeys, totalRev, totalExp, net };
+    // by client
+    const clientAgg = {};
+    revenue.forEach(r=>{ if(!r.clientId) return; const key=r.clientName||'Unknown'; clientAgg[key]=clientAgg[key]||{rev:0,exp:0}; clientAgg[key].rev+=Number(r.amount||0); });
+    expenses.forEach(x=>{ if(!x.clientId) return; const key=x.clientName||'Unknown'; clientAgg[key]=clientAgg[key]||{rev:0,exp:0}; clientAgg[key].exp+=Number(x.amount||0); });
+    const clientKeys = Object.keys(clientAgg).sort((a,b)=>(clientAgg[b].rev-clientAgg[b].exp)-(clientAgg[a].rev-clientAgg[a].exp));
+    if (!clientKeys.length) { clientWrap.innerHTML = `<div class="empty"><h3>Nothing tagged to a client in this range.</h3><p>Tag expenses or revenue to a client to see this breakdown.</p></div>`; }
+    else {
+      clientWrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Client</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead><tbody>
+        ${clientKeys.map(c=>{ const d=clientAgg[c]; const n=d.rev-d.exp; return `<tr><td><strong>${escHtml(c)}</strong></td><td>${formatCurrency(d.rev)}</td><td>${formatCurrency(d.exp)}</td><td style="color:${n>=0?'var(--success)':'var(--error)'};font-weight:700;">${formatCurrency(n)}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
+    }
+    window._pnlExport = { revenue, expenses, months, sortedMonths, cats, catKeys, clientAgg, clientKeys, totalRev, totalExp, net };
   } catch(err) { statsWrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading P&amp;L.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 window.exportPnLExcel = function(){
@@ -1462,6 +1632,8 @@ window.exportPnLExcel = function(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthly), 'Monthly');
   const byCat = d.catKeys.map(c=>({ Category:c, Amount:d.cats[c] }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byCat), 'By Category');
+  const byClient = d.clientKeys.map(c=>({ Client:c, Revenue:d.clientAgg[c].rev, Expenses:d.clientAgg[c].exp, Net:d.clientAgg[c].rev-d.clientAgg[c].exp }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byClient), 'By Client');
   XLSX.writeFile(wb, 'ada_pnl_report.xlsx');
 };
 </script>
