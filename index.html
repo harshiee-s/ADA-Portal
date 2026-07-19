@@ -141,6 +141,9 @@ tr:hover td{background:rgba(10,22,40,.015);}
 .pill-crew{background:var(--info-bg);color:var(--info);}
 .pill-youtube{background:var(--error-bg);color:var(--error);}
 .pill-instagram{background:rgba(193,53,132,.12);color:#C13584;}
+.pill-pending{background:var(--warn-bg);color:var(--warn);}
+.pill-approved{background:var(--success-bg);color:var(--success);}
+.pill-rejected{background:var(--error-bg);color:var(--error);}
 
 .mini-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .6rem;font-size:.74rem;font-weight:600;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);transition:var(--t);}
 .mini-btn:hover{background:var(--primary);color:#fff;}
@@ -351,7 +354,7 @@ body.no-scroll{overflow:hidden;}
 
     <section class="page" id="page-expenses">
       <div class="card panel">
-        <div class="panel-head"><h2>Add Expense</h2><p>Attach the bill (image or PDF, under 700 KB).</p></div>
+        <div class="panel-head"><h2>Add Expense</h2><p>Attach the bill (image or PDF, under 700 KB). Expenses added by crew members need admin approval before they count toward totals.</p></div>
         <form id="expenseForm" class="form-grid">
           <div class="field"><label>Date</label><input class="input" type="date" id="expDate" required></div>
           <div class="field"><label>Amount (₹)</label><input class="input" type="number" id="expAmount" min="0" step="0.01" required></div>
@@ -380,6 +383,12 @@ body.no-scroll{overflow:hidden;}
           <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
             <select class="input" id="expFilterCrew" style="width:auto;" onchange="loadExpensesPage()"><option value="">All crew</option></select>
             <select class="input" id="expFilterClient" style="width:auto;" onchange="loadExpensesPage()"><option value="">All clients</option></select>
+            <select class="input" id="expFilterStatus" style="width:auto;" onchange="loadExpensesPage()">
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
             <button class="btn btn-secondary" onclick="exportExpensesExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
           </div>
         </div>
@@ -800,6 +809,10 @@ function clientNameOf(id){
   const c = _clients.find(x=>x.id===id);
   return c ? c.name : '';
 }
+// Expenses added before the approval workflow existed have no `status` field —
+// treat those as already-approved so historical totals don't change.
+function expenseStatus(x){ return x.status || 'approved'; }
+function isApprovedExpense(x){ return expenseStatus(x) === 'approved'; }
 async function ensureClientsLoaded(){
   const snap = await getDocs(collection(db,'ada_clients'));
   _clients = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
@@ -816,7 +829,8 @@ async function loadDashboardPage(){
     ]);
     await ensureUsersLoaded();
     const revenue = revSnap.docs.map(d=>d.data());
-    const expenses = expSnap.docs.map(d=>d.data());
+    const allExpenses = expSnap.docs.map(d=>d.data());
+    const expenses = allExpenses.filter(isApprovedExpense);
     const assets = assetSnap.docs.map(d=>d.data());
     const liability = liabSnap.docs.map(d=>d.data());
     const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
@@ -836,11 +850,15 @@ async function loadDashboardPage(){
     `;
     await renderBalanceGrid('dashBalanceGrid');
 
-    // Alerts: crew with a balance due, assets low on stock
+    // Alerts: pending expense approvals (admin only), crew with a balance due, assets low on stock
     const balances = await computeCrewBalances();
     const crewWithDue = balances.filter(b=>b.balance > 0);
     const lowStock = assets.filter(a=>Number(a.quantity||0) <= 1);
+    const pendingExpenses = allExpenses.filter(x=>expenseStatus(x)==='pending');
     const alertItems = [];
+    if (window.adaCurrentRole === 'admin' && pendingExpenses.length) {
+      alertItems.push(`<div class="alert-item" onclick="showAdminPage('expenses')"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingExpenses.length} expense${pendingExpenses.length>1?'s':''} awaiting your approval</div>`);
+    }
     if (crewWithDue.length) {
       alertItems.push(`<div class="alert-item" onclick="showAdminPage('liability')"><i class="fa-solid fa-triangle-exclamation"></i> ${crewWithDue.length} crew member${crewWithDue.length>1?'s':''} with a balance due</div>`);
     }
@@ -887,7 +905,7 @@ async function computeAvailableBalances(){
   await ensureUsersLoaded();
   const [liabSnap, expSnap] = await Promise.all([getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_expenses'))]);
   const liab = liabSnap.docs.map(d=>d.data());
-  const exp = expSnap.docs.map(d=>d.data());
+  const exp = expSnap.docs.map(d=>d.data()).filter(isApprovedExpense);
   const crew = _users.filter(u=>u.role==='crew');
   return crew.map(c=>{
     const totalLiab = liab.filter(l=>l.crewId===c.id).reduce((s,l)=>s+Number(l.amount||0),0);
@@ -1252,19 +1270,31 @@ async function loadExpensesPage(){
     clientSel.value = prevExpClient;
     filterClientSel.value = prevFilterClient;
 
+    const filterStatusSel = document.getElementById('expFilterStatus');
+
     const snap = await getDocs(collection(db,'ada_expenses'));
     _expenses = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     const filterClient = filterClientSel.value;
     const filterCrew = filterSel.value;
+    const filterStatus = filterStatusSel.value;
     // Crew members can now view everyone's expenses, same as admin —
-    // they just can't add/edit/delete anything that isn't their own.
+    // they just can't add/edit/delete anything that isn't their own, and
+    // only approved expenses count toward totals elsewhere in the app.
     let list = filterCrew ? _expenses.filter(x=>x.crewId===filterCrew) : _expenses;
     if (filterClient) list = list.filter(x=>x.clientId===filterClient);
+    if (filterStatus) list = list.filter(x=>expenseStatus(x)===filterStatus);
     _expensesVisible = list;
     if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Client</th><th>Description</th><th>Bill</th><th></th></tr></thead><tbody>
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Client</th><th>Description</th><th>Bill</th><th>Status</th><th></th></tr></thead><tbody>
       ${list.map(x=>{
-        const isOwn = isAdminNow || x.crewId === currentUid;
+        const status = expenseStatus(x);
+        const isOwner = x.crewId === currentUid;
+        const canModify = isAdminNow || (isOwner && status !== 'approved');
+        const statusPill = `<span class="pill pill-${status}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>`;
+        const approveRejectBtns = isAdminNow ? `
+          ${status!=='approved' ? `<button class="mini-btn" onclick="setExpenseStatus('${x.id}','approved')"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
+          ${status!=='rejected' ? `<button class="mini-btn mini-btn-danger" onclick="setExpenseStatus('${x.id}','rejected')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+        ` : '';
         return `<tr>
         <td>${formatDate(x.date)}</td>
         <td><strong>${formatCurrency(x.amount)}</strong></td>
@@ -1273,8 +1303,10 @@ async function loadExpensesPage(){
         <td>${x.clientId ? escHtml(x.clientName||clientNameOf(x.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
         <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
         <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
-        <td style="display:flex;gap:.3rem;">
-          ${isOwn ? `<button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <td>${statusPill}</td>
+        <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+          ${approveRejectBtns}
+          ${canModify ? `<button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="mini-btn mini-btn-danger" onclick="deleteExpense('${x.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
         </td>
       </tr>`;}).join('')}
@@ -1285,7 +1317,11 @@ async function loadExpensesPage(){
 window.editExpense = function(id){
   const x = _expenses.find(e=>e.id===id);
   if (!x) return;
-  if (window.adaCurrentRole !== 'admin' && x.crewId !== window.adaCurrentUser?.uid) return;
+  const isAdminNow = window.adaCurrentRole === 'admin';
+  if (!isAdminNow) {
+    if (x.crewId !== window.adaCurrentUser?.uid) return;
+    if (expenseStatus(x) === 'approved') { showToast("This expense is already approved and can't be edited.", true); return; }
+  }
   _editingExpenseId = id;
   document.getElementById('expDate').value = x.date || '';
   document.getElementById('expAmount').value = x.amount || '';
@@ -1337,14 +1373,20 @@ async function onExpenseFormSubmit(e){
     };
     if (_pendingBill) { data.billBase64 = _pendingBill.base64; data.billFileName = _pendingBill.fileName; data.billFileType = _pendingBill.fileType; }
     if (editing) {
+      const existing = _expenses.find(x=>x.id===editing);
+      if (!isAdminNow && existing && expenseStatus(existing) === 'rejected') {
+        // Crew fixing up a rejected expense sends it back for review.
+        data.status = 'pending';
+      }
       await updateDoc(doc(db,'ada_expenses',editing), data);
     } else {
+      data.status = isAdminNow ? 'approved' : 'pending';
       data.createdAt = new Date().toISOString();
       data.createdBy = window.adaCurrentUser?.uid || null;
       await setDoc(doc(db,'ada_expenses','exp_'+Date.now()), data);
     }
     cancelExpenseEdit();
-    showToast(editing ? 'Expense updated.' : 'Expense added.');
+    showToast(editing ? 'Expense updated.' : (isAdminNow ? 'Expense added.' : 'Expense submitted for admin approval.'));
     loadExpensesPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally {
@@ -1361,15 +1403,27 @@ window.viewBill = function(id){
 };
 window.deleteExpense = async function(id){
   const x = _expenses.find(e=>e.id===id);
-  if (x && window.adaCurrentRole !== 'admin' && x.crewId !== window.adaCurrentUser?.uid) { showToast('You can only delete your own expenses.', true); return; }
+  if (x && window.adaCurrentRole !== 'admin') {
+    if (x.crewId !== window.adaCurrentUser?.uid) { showToast('You can only delete your own expenses.', true); return; }
+    if (expenseStatus(x) === 'approved') { showToast("This expense is already approved and can't be deleted.", true); return; }
+  }
   if (!confirm('Delete this expense?')) return;
   try { await deleteDoc(doc(db,'ada_expenses',id)); showToast('Expense deleted.'); loadExpensesPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
+
+window.setExpenseStatus = async function(id, newStatus){
+  if (window.adaCurrentRole !== 'admin') return;
+  try {
+    await updateDoc(doc(db,'ada_expenses',id), { status:newStatus, reviewedAt:new Date().toISOString(), reviewedBy:window.adaCurrentUser?.uid||null });
+    showToast(newStatus==='approved' ? 'Expense approved.' : 'Expense rejected.');
+    loadExpensesPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
 window.exportExpensesExcel = function(){
   const rows_source = _expensesVisible;
   if (!rows_source.length) { showToast('No expenses to export.', true); return; }
-  const rows = rows_source.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Client:x.clientName||'', Description:x.description||'' }));
+  const rows = rows_source.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Client:x.clientName||'', Description:x.description||'', Status: expenseStatus(x) }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
@@ -1685,7 +1739,7 @@ async function loadPnLPage(){
     const to = document.getElementById('pnlTo').value;
     const [revSnap, expSnap] = await Promise.all([getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses'))]);
     let revenue = revSnap.docs.map(d=>d.data());
-    let expenses = expSnap.docs.map(d=>d.data());
+    let expenses = expSnap.docs.map(d=>d.data()).filter(isApprovedExpense);
     if (from) { revenue = revenue.filter(r=>r.date>=from); expenses = expenses.filter(r=>r.date>=from); }
     if (to) { revenue = revenue.filter(r=>r.date<=to); expenses = expenses.filter(r=>r.date<=to); }
     const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
