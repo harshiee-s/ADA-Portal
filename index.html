@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ADA Portal | Crew Operations</title>
+<link rel="icon" type="image/png" href="logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#F4F3EE; --surface:#FFFFFF; --surface-2:#FAFAF8;
+  --primary:#0A1628; --primary-mid:#162847;
+  --gold:#C9A84C; --gold-soft:rgba(201,168,76,0.15); --gold-border:rgba(201,168,76,0.3);
+  --text:#0A1628; --text-2:#4A5568; --text-3:#9BA3AE;
+  --border:rgba(10,22,40,0.1); --border-2:rgba(10,22,40,0.06);
+  --success:#0D7A4E; --success-bg:#E6F7F1;
+  --warn:#A05C00; --warn-bg:#FFF3E0;
+  --error:#C0392B; --error-bg:#FEF0EE;
+  --info:#1A5EBB; --info-bg:#EBF3FF;
+  --shadow-sm:0 1px 4px rgba(10,22,40,0.06),0 0 0 1px rgba(10,22,40,0.04);
+  --shadow-md:0 8px 32px rgba(10,22,40,0.1),0 0 0 1px rgba(10,22,40,0.04);
+  --r-sm:6px; --r-md:12px; --r-lg:18px; --r-xl:24px; --r-pill:999px;
+  --t:0.2s cubic-bezier(0.4,0,0.2,1);
+  --font-head:"DM Serif Display",serif;
+  --font-body:"DM Sans",sans-serif;
+  --font-mono:"JetBrains Mono",monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:var(--font-body);color:var(--text);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased;}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(10,22,40,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(10,22,40,0.025) 1px,transparent 1px);background-size:32px 32px;}
+button,input,textarea,select{font:inherit;color:inherit;outline:none;}
+button{cursor:pointer;border:none;background:none;}
+a{text-decoration:none;color:inherit;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(10,22,40,0.15);border-radius:99px;}
+
+#bootSplash{position:fixed;inset:0;z-index:10000;background:var(--primary);display:flex;align-items:center;justify-content:center;transition:opacity .3s ease;color:rgba(255,255,255,.6);font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;}
+
+#loginScreen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9999;background:linear-gradient(135deg,#0A1628 0%,#162847 50%,#0A1628 100%);opacity:0;transition:opacity .4s ease;}
+#loginScreen::before{content:'';position:absolute;inset:0;background-image:radial-gradient(ellipse at 20% 50%,rgba(201,168,76,0.12) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(201,168,76,0.08) 0%,transparent 50%);}
+.login-card{position:relative;z-index:1;background:rgba(255,255,255,0.04);border:1px solid rgba(201,168,76,0.25);border-radius:var(--r-xl);backdrop-filter:blur(20px);padding:2.4rem 2rem;width:100%;max-width:400px;text-align:center;}
+.login-logo{width:64px;height:64px;margin:0 auto 1rem;border-radius:16px;background:linear-gradient(135deg,#E2BC5E,#C9A84C);display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:1.6rem;color:var(--primary);overflow:hidden;}
+.login-logo img{width:100%;height:100%;object-fit:contain;}
+.login-card h2{font-family:var(--font-head);font-size:1.85rem;color:#fff;margin-bottom:.2rem;letter-spacing:-.02em;}
+.login-card p{font-size:.85rem;color:rgba(255,255,255,.5);margin-bottom:1.5rem;}
+.login-input{width:100%;padding:.85rem 1rem;border-radius:var(--r-sm);border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.07);color:#fff;margin-bottom:.7rem;font-size:.9rem;transition:var(--t);}
+.login-input::placeholder{color:rgba(255,255,255,.35);}
+.login-input:focus{border-color:var(--gold);background:rgba(255,255,255,.1);box-shadow:0 0 0 3px rgba(201,168,76,.15);}
+.login-btn{width:100%;padding:.9rem;border-radius:var(--r-sm);background:linear-gradient(135deg,#E2BC5E,#C9A84C);color:var(--primary);font-weight:700;font-size:.9rem;transition:var(--t);}
+.login-btn:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 8px 24px rgba(201,168,76,.35);}
+.login-btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.login-alert{margin-top:.9rem;font-size:.83rem;color:#FCA5A5;display:none;background:rgba(239,68,68,.1);padding:.55rem .8rem;border-radius:var(--r-sm);border:1px solid rgba(239,68,68,.2);text-align:left;}
+.login-switch{margin-top:1.2rem;font-size:.8rem;color:rgba(255,255,255,.45);}
+.login-switch button{color:#E2BC5E;font-weight:600;}
+.login-switch button:hover{text-decoration:underline;}
+
+#appContent{display:none;height:100%;grid-template-columns:250px 1fr;grid-template-rows:64px 1fr;opacity:0;transition:opacity .35s ease;}
+.show-app{display:grid !important;opacity:1 !important;}
+
+.sidebar{grid-row:1/-1;background:var(--primary);padding:1.2rem 1rem;display:flex;flex-direction:column;overflow-y:auto;position:relative;}
+.sidebar::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:linear-gradient(to bottom,transparent,rgba(201,168,76,.25) 30%,rgba(201,168,76,.25) 70%,transparent);}
+.brand{display:flex;gap:.7rem;align-items:center;margin-bottom:1.6rem;padding:0 .4rem;}
+.brand-icon{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#E2BC5E,#C9A84C);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);color:var(--primary);font-size:1.2rem;overflow:hidden;}
+.brand-icon img{width:100%;height:100%;object-fit:contain;}
+.brand-text{font-family:var(--font-head);font-size:1.08rem;color:#fff;display:block;}
+.brand-sub{font-size:.68rem;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;display:block;margin-top:1px;}
+.nav-group{display:flex;flex-direction:column;gap:.2rem;}
+.nav-item{display:flex;align-items:center;gap:.7rem;padding:.62rem .8rem;font-size:.83rem;font-weight:500;border-radius:var(--r-sm);color:rgba(255,255,255,.5);transition:var(--t);position:relative;cursor:pointer;}
+.nav-item i{width:16px;text-align:center;font-size:.85rem;}
+.nav-item:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.06);}
+.nav-item.active{background:rgba(201,168,76,.15);color:#E2BC5E;}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold);border-radius:0 99px 99px 0;}
+.nav-item.logout-item{color:rgba(252,165,165,.7);margin-top:.5rem;}
+.nav-item.logout-item:hover{color:#FCA5A5;background:rgba(239,68,68,.08);}
+.sidebar-footer{margin-top:auto;padding:.85rem 1rem;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);border-radius:var(--r-md);font-size:.72rem;color:rgba(255,255,255,.55);}
+.sidebar-footer strong{display:block;color:#E2BC5E;margin-bottom:.25rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;}
+
+.header{grid-column:2;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;background:rgba(244,243,238,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:6;gap:1rem;}
+.header-title{min-width:0;}
+.header-title h1{font-family:var(--font-head);font-size:1.3rem;color:var(--primary);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-title p{font-size:.79rem;color:var(--text-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;}
+.role-badge{padding:.3rem .8rem;border-radius:var(--r-pill);font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:var(--gold-soft);color:var(--warn);border:1px solid var(--gold-border);}
+.role-badge.role-crew{background:var(--info-bg);color:var(--info);border-color:rgba(26,94,187,.2);}
+
+.btn{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1rem;font-size:.82rem;font-weight:600;border-radius:var(--r-pill);border:1px solid transparent;transition:var(--t);white-space:nowrap;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(10,22,40,.25);}
+.btn-primary:hover{background:var(--primary-mid);transform:translateY(-1px);}
+.btn-gold{background:linear-gradient(135deg,#E2BC5E,#C9A84C);color:var(--primary);}
+.btn-gold:hover{filter:brightness(1.04);transform:translateY(-1px);}
+.btn-secondary{background:var(--surface);color:var(--primary);border-color:var(--border);}
+.btn-secondary:hover{background:var(--primary);color:#fff;}
+.btn-danger{background:var(--error-bg);color:var(--error);border-color:rgba(192,57,43,.2);}
+.btn-danger:hover{background:var(--error);color:#fff;}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none !important;}
+
+.main{grid-column:2;overflow:auto;padding:1.4rem 1.5rem;display:grid;gap:1.1rem;align-content:flex-start;}
+.page{display:none;}
+.page.active{display:grid;gap:1.1rem;}
+
+.card{background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:1.2rem 1.3rem;}
+.panel{display:flex;flex-direction:column;gap:1rem;}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.6rem;}
+.panel-head h2{font-family:var(--font-head);font-size:1.15rem;color:var(--primary);letter-spacing:-.02em;}
+.panel-head p{font-size:.79rem;color:var(--text-3);margin-top:2px;}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;}
+.stat-card{background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:1.1rem 1.2rem;}
+.stat-card .stat-label{font-size:.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.stat-card .stat-value{font-family:var(--font-head);font-size:1.6rem;color:var(--primary);margin-top:.3rem;}
+.stat-card .stat-value.pos{color:var(--success);}
+.stat-card .stat-value.neg{color:var(--error);}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;}
+label{display:block;font-size:.76rem;font-weight:600;color:var(--text-2);margin-bottom:.3rem;}
+.input,select.input,textarea.input{width:100%;padding:.6rem .8rem;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);font-size:.86rem;transition:var(--t);}
+.input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.12);}
+textarea.input{resize:vertical;min-height:64px;}
+.field{display:flex;flex-direction:column;}
+.file-drop{border:1.5px dashed var(--border);border-radius:var(--r-md);padding:1rem;text-align:center;font-size:.78rem;color:var(--text-3);cursor:pointer;transition:var(--t);background:var(--surface-2);}
+.file-drop:hover{border-color:var(--gold);color:var(--text-2);}
+.file-drop.has-file{border-color:var(--success);color:var(--success);background:var(--success-bg);}
+
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:.83rem;}
+th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);font-weight:700;padding:.6rem .7rem;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:.65rem .7rem;border-bottom:1px solid var(--border-2);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(10,22,40,.015);}
+
+.pill{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .65rem;border-radius:var(--r-pill);font-size:.72rem;font-weight:600;white-space:nowrap;}
+.pill-active{background:var(--success-bg);color:var(--success);}
+.pill-inactive{background:var(--error-bg);color:var(--error);}
+.pill-admin{background:var(--gold-soft);color:var(--warn);}
+.pill-crew{background:var(--info-bg);color:var(--info);}
+.pill-youtube{background:var(--error-bg);color:var(--error);}
+.pill-instagram{background:rgba(193,53,132,.12);color:#C13584;}
+
+.mini-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .6rem;font-size:.74rem;font-weight:600;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);transition:var(--t);}
+.mini-btn:hover{background:var(--primary);color:#fff;}
+.mini-btn-danger:hover{background:var(--error);color:#fff;}
+
+.empty{text-align:center;padding:2rem 1rem;border:1.5px dashed var(--border);border-radius:var(--r-md);color:var(--text-3);}
+.empty-icon{font-size:1.8rem;margin-bottom:.5rem;opacity:.5;}
+.empty h3{font-size:.88rem;font-weight:600;color:var(--text-2);}
+.empty p{font-size:.78rem;margin-top:.2rem;}
+
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--primary);color:#fff;padding:.75rem 1.3rem;border-radius:var(--r-pill);font-size:.82rem;font-weight:500;box-shadow:var(--shadow-md);opacity:0;pointer-events:none;transition:all .3s ease;z-index:99999;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--error);}
+
+.tabs-row{display:flex;gap:.4rem;border-bottom:1px solid var(--border);margin-bottom:.2rem;flex-wrap:wrap;}
+.tab-btn{padding:.55rem .9rem;font-size:.82rem;font-weight:600;color:var(--text-3);border-bottom:2px solid transparent;transition:var(--t);}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--gold);}
+
+.balance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;}
+.balance-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:.85rem .95rem;}
+.balance-card .name{font-weight:700;font-size:.86rem;color:var(--primary);}
+.balance-card .row{display:flex;justify-content:space-between;font-size:.76rem;color:var(--text-3);margin-top:.35rem;}
+.balance-card .row strong{color:var(--text);}
+.balance-card .due{margin-top:.4rem;font-family:var(--font-head);font-size:1.15rem;}
+.due.pos{color:var(--error);}
+.due.zero{color:var(--success);}
+
+
+.hamburger-btn{display:none;background:none;border:none;color:var(--primary);font-size:1.15rem;padding:.5rem .6rem;border-radius:var(--r-sm);flex-shrink:0;}
+.hamburger-btn:hover{background:rgba(10,22,40,.06);}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(10,22,40,.55);z-index:40;}
+.sidebar-backdrop.show{display:block;}
+body.no-scroll{overflow:hidden;}
+
+@media (max-width:880px){
+  #appContent.show-app{grid-template-columns:1fr;grid-template-rows:64px 1fr;}
+  .hamburger-btn{display:inline-flex;align-items:center;justify-content:center;}
+  .sidebar{
+    position:fixed; top:0; left:0; bottom:0; z-index:50;
+    width:250px; max-width:80vw;
+    transform:translateX(-100%);
+    transition:transform .28s cubic-bezier(0.4,0,0.2,1);
+    box-shadow:var(--shadow-md);
+  }
+  .sidebar.mobile-open{transform:translateX(0);}
+  .header{grid-column:1;}
+  .main{grid-column:1;}
+  .header-title p{display:none;}
+  .header-title h1{font-size:1.1rem;}
+}
+</style>
+</head>
+<body>
+
+<div id="bootSplash">Loading ADA Portal…</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card" id="signInCard">
+    <div class="login-logo" id="loginLogo"><img src="logo.png" alt="Logo" onerror="this.remove(); document.getElementById('loginLogo').textContent='A';"></div>
+    <h2>ADA Portal</h2>
+    <p>Sign in to the crew operations dashboard</p>
+    <form id="loginForm">
+      <input class="login-input" id="loginIdInput" type="email" placeholder="Email" autocomplete="email" required />
+      <input class="login-input" id="loginPasswordInput" type="password" placeholder="Password" autocomplete="current-password" required minlength="6" />
+      <button class="login-btn" id="loginBtnEl" type="submit"><i class="fa-solid fa-lock"></i>&ensp;Sign In</button>
+    </form>
+    <div class="login-switch"><button type="button" id="forgotPasswordBtn">Forgot password?</button></div>
+    <div class="login-alert" id="loginError"></div>
+    <div class="login-switch">No account yet? The first email and password you enter above becomes the admin account.</div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="appContent">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon" id="brandIcon"><img src="logo.png" alt="Logo" onerror="this.remove(); document.getElementById('brandIcon').textContent='A';"></div>
+      <div>
+        <span class="brand-text">ADA Portal</span>
+        <span class="brand-sub">Crew Operations</span>
+      </div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-item active" data-page="dashboard"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></div>
+      <div class="nav-item" data-page="users" id="navUsers"><i class="fa-solid fa-users"></i><span>Users</span></div>
+      <div class="nav-item" data-page="items"><i class="fa-solid fa-box"></i><span>Items</span></div>
+      <div class="nav-item" data-page="locations"><i class="fa-solid fa-location-dot"></i><span>Locations</span></div>
+      <div class="nav-item" data-page="assets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
+      <div class="nav-item" data-page="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></div>
+      <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
+      <div class="nav-item" data-page="liability"><i class="fa-solid fa-hand-holding-dollar"></i><span>Crew Liability</span></div>
+      <div class="nav-item" data-page="payments"><i class="fa-solid fa-money-bill-transfer"></i><span>Crew Payments</span></div>
+      <div class="nav-item" data-page="pnl"><i class="fa-solid fa-chart-line"></i><span>P&amp;L Report</span></div>
+      <div class="nav-item logout-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
+    </div>
+    <div class="sidebar-footer">
+      <strong>Signed in as</strong>
+      <span id="sidebarUserName">—</span>
+    </div>
+  </aside>
+
+  <header class="header">
+    <div style="display:flex;align-items:center;gap:.4rem;min-width:0;">
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu" type="button"><i class="fa-solid fa-bars"></i></button>
+      <div class="header-title">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSubtitle">Overview of crew finances and assets.</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="role-badge" id="roleBadgeText">ADMIN</span>
+    </div>
+  </header>
+
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <main class="main">
+
+    <section class="page active" id="page-dashboard">
+      <div class="stats" id="dashStats"></div>
+      <div class="card">
+        <div class="panel-head"><h2>Balance Owed to Crew</h2><p>Liability recorded minus payments made, per crew member.</p></div>
+        <div class="balance-grid" id="dashBalanceGrid" style="margin-top:.8rem;"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-users">
+      <div class="card panel" id="createLoginCard">
+        <div class="panel-head"><h2>Create Login</h2><p>Give a crew member (or another admin) a login ID and password.</p></div>
+        <form id="userForm" class="form-grid">
+          <div class="field"><label>Full Name</label><input class="input" id="userName" required></div>
+          <div class="field"><label>Email</label><input class="input" type="email" id="userLoginId" required placeholder="e.g. priya@brandshark.com"></div>
+          <div class="field"><label>Password</label><input class="input" type="password" id="userPassword" minlength="6" required></div>
+          <div class="field"><label>Role</label><select class="input" id="userRole"><option value="crew">Crew Member</option><option value="admin">Admin</option></select></div>
+          <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit" id="userSubmitBtn"><i class="fa-solid fa-user-plus"></i> Create Login</button></div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>All Logins</h2><p>Everyone with access to this portal.</p></div>
+        <div id="usersTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-items">
+      <div class="card panel">
+        <div class="panel-head"><h2>Add Item</h2><p>Master list of item types used in asset management.</p></div>
+        <form id="itemForm" class="form-grid">
+          <div class="field"><label>Item Name</label><input class="input" id="itemName" required placeholder="e.g. DSLR Camera"></div>
+          <div class="field"><label>Category</label><input class="input" id="itemCategory" placeholder="e.g. Camera Gear"></div>
+          <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit"><i class="fa-solid fa-plus"></i> Add Item</button></div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Item List</h2></div>
+        <div id="itemsTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-locations">
+      <div class="card panel">
+        <div class="panel-head"><h2>Add Location</h2><p>Where assets are stored or deployed.</p></div>
+        <form id="locationForm" class="form-grid">
+          <div class="field"><label>Location Name</label><input class="input" id="locationName" required placeholder="e.g. Studio A"></div>
+          <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit"><i class="fa-solid fa-plus"></i> Add Location</button></div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Location List</h2></div>
+        <div id="locationsTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-assets">
+      <div class="card panel">
+        <div class="panel-head"><h2>Add / Update Asset Stock</h2><p>Select an item and location — quantity adds to existing stock there.</p></div>
+        <form id="assetForm" class="form-grid">
+          <div class="field"><label>Item</label><select class="input" id="assetItem" required></select></div>
+          <div class="field"><label>Quantity</label><input class="input" type="number" id="assetQty" min="1" step="1" required></div>
+          <div class="field"><label>Location</label><select class="input" id="assetLocation" required></select></div>
+          <div class="field"><label>Notes (optional)</label><input class="input" id="assetNotes"></div>
+          <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit"><i class="fa-solid fa-plus"></i> Save Asset</button></div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Current Inventory</h2></div>
+        <div id="assetsTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-expenses">
+      <div class="card panel">
+        <div class="panel-head"><h2>Add Expense</h2><p>Attach the bill (image or PDF, under 700 KB).</p></div>
+        <form id="expenseForm" class="form-grid">
+          <div class="field"><label>Date</label><input class="input" type="date" id="expDate" required></div>
+          <div class="field"><label>Amount (₹)</label><input class="input" type="number" id="expAmount" min="0" step="0.01" required></div>
+          <div class="field"><label>Crew Member</label><select class="input" id="expCrew"><option value="">General / Not crew-specific</option></select></div>
+          <div class="field"><label>Category</label>
+            <select class="input" id="expCategory">
+              <option>Equipment</option><option>Travel</option><option>Software</option><option>Ads &amp; Promotion</option><option>Food</option><option>Misc</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1;"><label>Description</label><input class="input" id="expDescription"></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Attach Bill (optional)</label>
+            <label class="file-drop" id="expFileDrop" for="expFile"><i class="fa-solid fa-cloud-arrow-up"></i> Click to attach a photo or PDF of the bill (max 700 KB)</label>
+            <input type="file" id="expFile" accept="image/*,application/pdf" style="display:none;">
+          </div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="expSubmitBtn"><i class="fa-solid fa-plus"></i> Add Expense</button>
+            <button class="btn btn-secondary" type="button" id="expCancelEditBtn" style="display:none;" onclick="cancelExpenseEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head">
+          <h2>Expense History</h2>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <select class="input" id="expFilterCrew" style="width:auto;" onchange="loadExpensesPage()"><option value="">All crew</option></select>
+            <button class="btn btn-secondary" onclick="exportExpensesExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div id="expensesTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-revenue">
+      <div class="card panel">
+        <div class="panel-head"><h2>Add Revenue</h2></div>
+        <form id="revenueForm" class="form-grid">
+          <div class="field"><label>Source</label><select class="input" id="revSource"><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option></select></div>
+          <div class="field"><label>Date</label><input class="input" type="date" id="revDate" required></div>
+          <div class="field"><label>Amount (₹)</label><input class="input" type="number" min="0" step="0.01" id="revAmount" required></div>
+          <div class="field" style="grid-column:1/-1;"><label>Description</label><input class="input" id="revDescription" placeholder="e.g. Brand deal, AdSense payout"></div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="revSubmitBtn"><i class="fa-solid fa-plus"></i> Add Revenue</button>
+            <button class="btn btn-secondary" type="button" id="revCancelEditBtn" style="display:none;" onclick="cancelRevenueEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head">
+          <h2>Revenue History</h2>
+          <button class="btn btn-secondary" onclick="exportRevenueExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+        </div>
+        <div class="stats" id="revStats" style="margin-bottom:.3rem;"></div>
+        <div id="revenueTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-liability">
+      <div class="card">
+        <div class="panel-head"><h2>Balance by Crew Member</h2><p>Total liability recorded minus total payments made.</p></div>
+        <div class="balance-grid" id="liabilityBalanceGrid" style="margin-top:.8rem;"></div>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Record Liability</h2><p>Amount owed to a crew member (fee accrued, dues, etc).</p></div>
+        <form id="liabilityForm" class="form-grid">
+          <div class="field"><label>Crew Member</label><select class="input" id="liabCrew" required></select></div>
+          <div class="field"><label>Amount (₹)</label><input class="input" type="number" min="0" step="0.01" id="liabAmount" required></div>
+          <div class="field"><label>Date</label><input class="input" type="date" id="liabDate" required></div>
+          <div class="field"><label>Description</label><input class="input" id="liabDescription"></div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="liabSubmitBtn"><i class="fa-solid fa-plus"></i> Add</button>
+            <button class="btn btn-secondary" type="button" id="liabCancelEditBtn" style="display:none;" onclick="cancelLiabilityEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Liability History</h2></div>
+        <div id="liabilityTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-payments">
+      <div class="card">
+        <div class="panel-head"><h2>Balance by Crew Member</h2></div>
+        <div class="balance-grid" id="paymentsBalanceGrid" style="margin-top:.8rem;"></div>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Record Payment</h2><p>Payment made to a crew member.</p></div>
+        <form id="paymentForm" class="form-grid">
+          <div class="field"><label>Crew Member</label><select class="input" id="payCrew" required></select></div>
+          <div class="field"><label>Amount (₹)</label><input class="input" type="number" min="0" step="0.01" id="payAmount" required></div>
+          <div class="field"><label>Date</label><input class="input" type="date" id="payDate" required></div>
+          <div class="field"><label>Method</label><select class="input" id="payMethod"><option>Bank Transfer</option><option>UPI</option><option>Cash</option><option>Other</option></select></div>
+          <div class="field" style="grid-column:1/-1;"><label>Notes</label><input class="input" id="payNotes"></div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="paySubmitBtn"><i class="fa-solid fa-plus"></i> Add Payment</button>
+            <button class="btn btn-secondary" type="button" id="payCancelEditBtn" style="display:none;" onclick="cancelPaymentEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head"><h2>Payment History</h2></div>
+        <div id="paymentsTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-pnl">
+      <div class="card">
+        <div class="panel-head">
+          <h2>Profit &amp; Loss</h2>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <input class="input" type="date" id="pnlFrom" style="width:auto;">
+            <span style="font-size:.8rem;color:var(--text-3);">to</span>
+            <input class="input" type="date" id="pnlTo" style="width:auto;">
+            <button class="btn btn-secondary" onclick="loadPnLPage()"><i class="fa-solid fa-filter"></i> Apply</button>
+            <button class="btn btn-secondary" onclick="exportPnLExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+          </div>
+        </div>
+        <div class="stats" id="pnlStats" style="margin-top:1rem;"></div>
+      </div>
+      <div class="card">
+        <div class="panel-head"><h2>Monthly Breakdown</h2></div>
+        <div id="pnlMonthlyWrap"></div>
+      </div>
+      <div class="card">
+        <div class="panel-head"><h2>Expenses by Category</h2></div>
+        <div id="pnlCategoryWrap"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  onAuthStateChanged, signOut, deleteUser, sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc,
+  doc, query, where
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBKkxt-7_dqAopGLOq1GT1-1vCCDSRlTS4",
+  authDomain: "ada-portal.firebaseapp.com",
+  projectId: "ada-portal",
+  storageBucket: "ada-portal.firebasestorage.app",
+  messagingSenderId: "233638114051",
+  appId: "1:233638114051:web:74f17672216b2da6bf2f36"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const secondaryApp = initializeApp(firebaseConfig, "ADASecondary");
+const secondaryAuth = getAuth(secondaryApp);
+
+const normalizeEmail = raw => (raw||'').trim().toLowerCase();
+
+// ─── HELPERS ───
+const escHtml = s => String(s??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const formatCurrency = v => '₹'+Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:2});
+const formatDate = v => v ? new Date(v+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+const todayISO = () => new Date().toISOString().split('T')[0];
+function showToast(msg, isError=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast'+(isError?' error':'')+' show';
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+window.showToast = showToast;
+function hideBootSplash(){
+  const b = document.getElementById('bootSplash');
+  if (b){ b.style.opacity='0'; setTimeout(()=>{ b.style.display='none'; }, 300); }
+}
+function openSidebarDrawer(){
+  document.querySelector('.sidebar').classList.add('mobile-open');
+  document.getElementById('sidebarBackdrop').classList.add('show');
+  document.body.classList.add('no-scroll');
+}
+function closeSidebarDrawer(){
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+  document.body.classList.remove('no-scroll');
+}
+
+// ─── STATE ───
+window.adaCurrentUser = null;
+window.adaCurrentRole = null;
+window.adaProfile = null;
+window.__creatingAdmin = false;
+window.__adminLaunched = false;
+let _users=[], _items=[], _locations=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[];
+
+const pageConfig = {
+  dashboard:{t:'Dashboard', s:'Overview of crew finances and assets.'},
+  users:{t:'Users', s:'Manage portal logins.'},
+  items:{t:'Items', s:'Master list of asset types.'},
+  locations:{t:'Locations', s:'Where assets are stored or deployed.'},
+  assets:{t:'Assets', s:'Track equipment quantity by location.'},
+  expenses:{t:'Expenses', s:'Log spends with bills attached.'},
+  revenue:{t:'Revenue', s:'Income from YouTube and Instagram.'},
+  liability:{t:'Crew Liability', s:'Amounts owed to crew members.'},
+  payments:{t:'Crew Payments', s:'Payments made to crew members.'},
+  pnl:{t:'P&L Report', s:'Revenue vs expenses over time.'}
+};
+
+document.getElementById('loginForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const email = normalizeEmail(document.getElementById('loginIdInput').value);
+  const pass = document.getElementById('loginPasswordInput').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display='none';
+  const btn = document.getElementById('loginBtnEl');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>&ensp;Signing in...';
+  try {
+    // Normal path: an account with these credentials already exists.
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(signInErr) {
+    if (signInErr.code === 'auth/invalid-email') {
+      errEl.textContent = 'Enter a valid email address.'; errEl.style.display='block';
+      btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-lock"></i>&ensp;Sign In';
+      return;
+    }
+    // No matching account (or wrong password) — find out which by trying to create one.
+    // Firebase enforces unique emails, so this only succeeds if the email was never used before.
+    window.__creatingAdmin = true;
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      const allSnap = await getDocs(collection(db,'ada_users'));
+      if (allSnap.empty) {
+        // Very first login on this portal — these credentials become the admin account.
+        const profile = { role:'admin', name: email.split('@')[0], email, status:'active', createdAt:new Date().toISOString() };
+        await setDoc(doc(db,'ada_users',cred.user.uid), profile);
+        window.__creatingAdmin = false;
+        launchAdminApp(cred.user, profile);
+      } else {
+        // An admin already exists — this was just an unrecognized email. Clean up the stray account.
+        await deleteUser(cred.user);
+        window.__creatingAdmin = false;
+        errEl.textContent = 'Incorrect email or password.';
+        errEl.style.display='block';
+      }
+    } catch(createErr) {
+      window.__creatingAdmin = false;
+      errEl.textContent = 'Incorrect email or password.';
+      errEl.style.display='block';
+    }
+  } finally {
+    btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-lock"></i>&ensp;Sign In';
+  }
+});
+
+document.getElementById('forgotPasswordBtn').addEventListener('click', async()=>{
+  const errEl = document.getElementById('loginError');
+  errEl.style.display='none';
+  let email = normalizeEmail(document.getElementById('loginIdInput').value);
+  if (!email) {
+    email = normalizeEmail(prompt('Enter your email to receive a password reset link:') || '');
+  }
+  if (!email) return;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    errEl.style.color = '#86EFAC';
+    errEl.textContent = `Reset email sent to ${email}. Check your inbox.`;
+    errEl.style.display = 'block';
+  } catch(err) {
+    errEl.style.color = '';
+    let msg = 'Could not send reset email.';
+    if (err.code === 'auth/invalid-email') msg = 'Enter a valid email address.';
+    errEl.textContent = msg; errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async()=>{ await signOut(auth); window.location.reload(); });
+
+// ─── AUTH STATE ───
+onAuthStateChanged(auth, async user=>{
+  if (user) {
+    if (window.__creatingAdmin) return; // setup form owns this flow
+    window.adaCurrentUser = user;
+    try {
+      const ud = await getDoc(doc(db,'ada_users',user.uid));
+      if (!ud.exists()) {
+        const allSnap = await getDocs(collection(db,'ada_users'));
+        if (allSnap.empty) {
+          const profile = { role:'admin', name:user.email.split('@')[0], email:user.email, status:'active', createdAt:new Date().toISOString() };
+          await setDoc(doc(db,'ada_users',user.uid), profile);
+          launchAdminApp(user, profile);
+          return;
+        }
+        showLoginError('No portal profile found for this login. Contact your admin.');
+        await signOut(auth); return;
+      }
+      const data = ud.data();
+      if (data.status === 'inactive') {
+        showLoginError('This login has been deactivated. Contact your admin.');
+        await signOut(auth); return;
+      }
+      window.adaProfile = { uid:user.uid, ...data };
+      window.adaCurrentRole = data.role;
+      launchAdminApp(user, data);
+    } catch(err) {
+      showLoginError('Error: '+err.message);
+      await signOut(auth);
+    }
+  } else {
+    window.adaCurrentUser = null; window.adaCurrentRole = null; window.adaProfile = null;
+    document.getElementById('appContent').classList.remove('show-app');
+    hideBootSplash();
+    const ls = document.getElementById('loginScreen');
+    ls.style.display = 'flex';
+    setTimeout(()=>ls.style.opacity='1', 30);
+  }
+});
+
+function showLoginError(msg){
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display='block';
+}
+
+// ─── LAUNCH ───
+function launchAdminApp(user, profile){
+  hideBootSplash();
+  document.getElementById('loginScreen').style.opacity='0';
+  setTimeout(()=>{ document.getElementById('loginScreen').style.display='none'; }, 300);
+  document.getElementById('appContent').classList.add('show-app');
+  document.getElementById('sidebarUserName').textContent = profile.name || profile.email || user.email;
+
+  const isAdmin = profile.role === 'admin';
+  const badge = document.getElementById('roleBadgeText');
+  badge.textContent = isAdmin ? 'ADMIN' : 'CREW';
+  badge.classList.toggle('role-crew', !isAdmin);
+  const createLoginCard = document.getElementById('createLoginCard');
+  if (createLoginCard) createLoginCard.style.display = isAdmin ? '' : 'none';
+  const navUsers = document.getElementById('navUsers');
+  if (navUsers) navUsers.style.display = isAdmin ? '' : 'none';
+
+  if (window.__adminLaunched) return;
+  window.__adminLaunched = true;
+  document.querySelectorAll('.nav-item[data-page]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ showAdminPage(btn.dataset.page); closeSidebarDrawer(); });
+  });
+  const hamburger = document.getElementById('hamburgerBtn');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  hamburger.addEventListener('click', openSidebarDrawer);
+  backdrop.addEventListener('click', closeSidebarDrawer);
+  window.addEventListener('resize', ()=>{ if (window.innerWidth > 880) closeSidebarDrawer(); });
+  document.getElementById('expDate').value = todayISO();
+  document.getElementById('revDate').value = todayISO();
+  document.getElementById('liabDate').value = todayISO();
+  document.getElementById('payDate').value = todayISO();
+  const now = new Date();
+  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+  document.getElementById('pnlFrom').value = firstOfMonth;
+  document.getElementById('pnlTo').value = todayISO();
+  document.getElementById('expFileDrop').addEventListener('click', ()=>document.getElementById('expFile').click());
+  document.getElementById('expFile').addEventListener('change', onExpenseFileChosen);
+  wireForms();
+  showAdminPage('dashboard');
+}
+
+// ─── NAV ───
+window.showAdminPage = function(name){
+  if (name === 'users' && window.adaCurrentRole !== 'admin') name = 'dashboard';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.classList.remove('active'));
+  const activeBtn = document.querySelector(`.nav-item[data-page="${name}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageConfig[name].t;
+  document.getElementById('pageSubtitle').textContent = pageConfig[name].s;
+  const loaders = {
+    dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
+    locations: loadLocationsPage, assets: loadAssetsPage, expenses: loadExpensesPage,
+    revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage,
+    pnl: loadPnLPage
+  };
+  if (loaders[name]) loaders[name]();
+};
+
+// ─── FORM WIRING (attach once) ───
+function wireForms(){
+  document.getElementById('userForm').addEventListener('submit', onUserFormSubmit);
+  document.getElementById('itemForm').addEventListener('submit', onItemFormSubmit);
+  document.getElementById('locationForm').addEventListener('submit', onLocationFormSubmit);
+  document.getElementById('assetForm').addEventListener('submit', onAssetFormSubmit);
+  document.getElementById('expenseForm').addEventListener('submit', onExpenseFormSubmit);
+  document.getElementById('revenueForm').addEventListener('submit', onRevenueFormSubmit);
+  document.getElementById('liabilityForm').addEventListener('submit', onLiabilityFormSubmit);
+  document.getElementById('paymentForm').addEventListener('submit', onPaymentFormSubmit);
+}
+
+// ─── CREW HELPERS ───
+function crewOptionsHtml(selected){
+  const crew = _users.filter(u=>u.role==='crew' && u.status!=='inactive');
+  return '<option value="">— Select Crew —</option>' + crew.map(c=>
+    `<option value="${c.id}" ${c.id===selected?'selected':''}>${escHtml(c.name)}</option>`).join('');
+}
+function crewName(uid){
+  const u = _users.find(x=>x.id===uid);
+  return u ? u.name : '—';
+}
+async function ensureUsersLoaded(){
+  const snap = await getDocs(collection(db,'ada_users'));
+  _users = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+// ═══════════════════ DASHBOARD ═══════════════════
+async function loadDashboardPage(){
+  const wrap = document.getElementById('dashStats');
+  wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const [revSnap, expSnap, assetSnap] = await Promise.all([
+      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets'))
+    ]);
+    await ensureUsersLoaded();
+    const revenue = revSnap.docs.map(d=>d.data());
+    const expenses = expSnap.docs.map(d=>d.data());
+    const assets = assetSnap.docs.map(d=>d.data());
+    const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
+    const totalExp = expenses.reduce((s,r)=>s+Number(r.amount||0),0);
+    const net = totalRev - totalExp;
+    const totalAssetQty = assets.reduce((s,a)=>s+Number(a.quantity||0),0);
+    const crewCount = _users.filter(u=>u.role==='crew' && u.status!=='inactive').length;
+    wrap.innerHTML = `
+      <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${formatCurrency(totalRev)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${formatCurrency(totalExp)}</div></div>
+      <div class="stat-card"><div class="stat-label">Net P&amp;L</div><div class="stat-value ${net>=0?'pos':'neg'}">${formatCurrency(net)}</div></div>
+      <div class="stat-card"><div class="stat-label">Asset Units</div><div class="stat-value">${totalAssetQty}</div></div>
+      <div class="stat-card"><div class="stat-label">Active Crew</div><div class="stat-value">${crewCount}</div></div>
+    `;
+    await renderBalanceGrid('dashBalanceGrid');
+  } catch(err) {
+    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading dashboard.</h3><p>${escHtml(err.message)}</p></div>`;
+  }
+}
+
+async function computeCrewBalances(){
+  await ensureUsersLoaded();
+  const [liabSnap, paySnap] = await Promise.all([getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_payments'))]);
+  const liab = liabSnap.docs.map(d=>d.data());
+  const pay = paySnap.docs.map(d=>d.data());
+  const crew = _users.filter(u=>u.role==='crew');
+  return crew.map(c=>{
+    const totalLiab = liab.filter(l=>l.crewId===c.id).reduce((s,l)=>s+Number(l.amount||0),0);
+    const totalPaid = pay.filter(p=>p.crewId===c.id).reduce((s,p)=>s+Number(p.amount||0),0);
+    return { crewId:c.id, name:c.name, totalLiab, totalPaid, balance: totalLiab-totalPaid };
+  });
+}
+
+async function renderBalanceGrid(elId){
+  const wrap = document.getElementById(elId);
+  const balances = await computeCrewBalances();
+  if (!balances.length) { wrap.innerHTML = `<div class="empty"><h3>No crew members yet.</h3><p>Add crew logins from the Users page.</p></div>`; return; }
+  wrap.innerHTML = balances.map(b=>`
+    <div class="balance-card">
+      <div class="name">${escHtml(b.name)}</div>
+      <div class="row"><span>Liability</span><strong>${formatCurrency(b.totalLiab)}</strong></div>
+      <div class="row"><span>Paid</span><strong>${formatCurrency(b.totalPaid)}</strong></div>
+      <div class="due ${b.balance>0?'pos':'zero'}">${formatCurrency(b.balance)} due</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════ USERS ═══════════════════
+async function loadUsersPage(){
+  const wrap = document.getElementById('usersTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const snap = await getDocs(collection(db,'ada_users'));
+    _users = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    if (!_users.length) { wrap.innerHTML = `<div class="empty"><h3>No logins yet.</h3></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>
+      ${_users.map(u=>`<tr>
+        <td><strong>${escHtml(u.name)}</strong></td>
+        <td><code>${escHtml(u.email)}</code></td>
+        <td><span class="pill pill-${u.role}">${escHtml(u.role)}</span></td>
+        <td><span class="pill ${u.status==='inactive'?'pill-inactive':'pill-active'}">${u.status==='inactive'?'Inactive':'Active'}</span></td>
+        <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+          <button class="mini-btn" onclick="resetUserPassword('${escHtml(u.email)}')"><i class="fa-solid fa-key"></i> Reset</button>
+          ${u.id===window.adaCurrentUser?.uid ? '' : `<button class="mini-btn" onclick="toggleUserStatus('${u.id}','${u.status==='inactive'?'active':'inactive'}')"><i class="fa-solid fa-power-off"></i> ${u.status==='inactive'?'Activate':'Deactivate'}</button>`}
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading users.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+
+window.resetUserPassword = async function(email){
+  if (!confirm(`Send a password reset email to ${email}?`)) return;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    showToast(`Reset email sent to ${email}.`);
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+window.toggleUserStatus = async function(uid, newStatus){
+  try {
+    await updateDoc(doc(db,'ada_users',uid), { status:newStatus });
+    showToast('Status updated.');
+    loadUsersPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+async function onUserFormSubmit(e){
+  e.preventDefault();
+  const name = document.getElementById('userName').value.trim();
+  const email = normalizeEmail(document.getElementById('userLoginId').value);
+  const password = document.getElementById('userPassword').value;
+  const role = document.getElementById('userRole').value;
+  const btn = document.getElementById('userSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+  try {
+    const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    await signOut(secondaryAuth);
+    await setDoc(doc(db,'ada_users',cred.user.uid), {
+      name, email, role, status:'active',
+      createdAt: new Date().toISOString(), createdBy: window.adaCurrentUser?.uid || null
+    });
+    document.getElementById('userForm').reset();
+    showToast(`Login created for ${name}.`);
+    loadUsersPage();
+  } catch(err) {
+    let msg = err.message;
+    if (err.code === 'auth/email-already-in-use') msg = 'That email is already registered.';
+    if (err.code === 'auth/weak-password') msg = 'Password must be at least 6 characters.';
+    if (err.code === 'auth/invalid-email') msg = 'Enter a valid email address.';
+    showToast('Error: '+msg, true);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Create Login';
+  }
+}
+
+// ═══════════════════ ITEMS ═══════════════════
+async function loadItemsPage(){
+  const wrap = document.getElementById('itemsTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const snap = await getDocs(collection(db,'ada_items'));
+    _items = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    if (!_items.length) { wrap.innerHTML = `<div class="empty"><h3>No items yet.</h3><p>Add item types above — they'll show up in Asset Management.</p></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Category</th><th></th></tr></thead><tbody>
+      ${_items.map(i=>`<tr><td><strong>${escHtml(i.name)}</strong></td><td>${escHtml(i.category||'—')}</td>
+        <td><button class="mini-btn mini-btn-danger" onclick="deleteItem('${i.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading items.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+async function onItemFormSubmit(e){
+  e.preventDefault();
+  const name = document.getElementById('itemName').value.trim();
+  const category = document.getElementById('itemCategory').value.trim();
+  try {
+    const id = 'item_'+Date.now();
+    await setDoc(doc(db,'ada_items',id), { name, category, createdAt:new Date().toISOString() });
+    document.getElementById('itemForm').reset();
+    showToast('Item added.');
+    loadItemsPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+}
+window.deleteItem = async function(id){
+  if (!confirm('Delete this item? Existing asset records referencing it will keep their stored name.')) return;
+  try { await deleteDoc(doc(db,'ada_items',id)); showToast('Item deleted.'); loadItemsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ═══════════════════ LOCATIONS ═══════════════════
+async function loadLocationsPage(){
+  const wrap = document.getElementById('locationsTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const snap = await getDocs(collection(db,'ada_locations'));
+    _locations = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    if (!_locations.length) { wrap.innerHTML = `<div class="empty"><h3>No locations yet.</h3></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>
+      ${_locations.map(l=>`<tr><td><strong>${escHtml(l.name)}</strong></td>
+        <td><button class="mini-btn mini-btn-danger" onclick="deleteLocation('${l.id}')"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading locations.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+async function onLocationFormSubmit(e){
+  e.preventDefault();
+  const name = document.getElementById('locationName').value.trim();
+  try {
+    const id = 'loc_'+Date.now();
+    await setDoc(doc(db,'ada_locations',id), { name, createdAt:new Date().toISOString() });
+    document.getElementById('locationForm').reset();
+    showToast('Location added.');
+    loadLocationsPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+}
+window.deleteLocation = async function(id){
+  if (!confirm('Delete this location?')) return;
+  try { await deleteDoc(doc(db,'ada_locations',id)); showToast('Location deleted.'); loadLocationsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ═══════════════════ ASSETS ═══════════════════
+async function loadAssetsPage(){
+  const wrap = document.getElementById('assetsTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const [itemSnap, locSnap, assetSnap] = await Promise.all([
+      getDocs(collection(db,'ada_items')), getDocs(collection(db,'ada_locations')), getDocs(collection(db,'ada_assets'))
+    ]);
+    _items = itemSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    _locations = locSnap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    _assets = assetSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+    const itemSel = document.getElementById('assetItem');
+    itemSel.innerHTML = _items.map(i=>`<option value="${i.id}">${escHtml(i.name)}</option>`).join('') + `<option value="__new__">+ Add new item…</option>`;
+    const locSel = document.getElementById('assetLocation');
+    locSel.innerHTML = _locations.map(l=>`<option value="${l.id}">${escHtml(l.name)}</option>`).join('') + `<option value="__new__">+ Add new location…</option>`;
+
+    if (!_assets.length) { wrap.innerHTML = `<div class="empty"><h3>No assets recorded yet.</h3><p>Add your first asset above.</p></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th><th></th></tr></thead><tbody>
+      ${_assets.sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'')).map(a=>`<tr>
+        <td><strong>${escHtml(a.itemName)}</strong></td>
+        <td>${a.quantity}</td>
+        <td>${escHtml(a.locationName)}</td>
+        <td style="font-size:.78rem;">${escHtml(a.notes||'—')}</td>
+        <td style="font-size:.76rem;">${a.updatedAt?formatDate(a.updatedAt.slice(0,10)):'—'}</td>
+        <td style="display:flex;gap:.3rem;">
+          <button class="mini-btn" onclick="adjustAssetQty('${a.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteAsset('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading assets.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+
+document.getElementById('assetItem').addEventListener('change', async function(){
+  if (this.value === '__new__') {
+    const name = prompt('New item name:');
+    if (name && name.trim()) {
+      const id = 'item_'+Date.now();
+      await setDoc(doc(db,'ada_items',id), { name:name.trim(), category:'', createdAt:new Date().toISOString() });
+      await loadAssetsPage();
+      document.getElementById('assetItem').value = id;
+      showToast('Item added.');
+    } else { this.value = _items[0]?.id || ''; }
+  }
+});
+document.getElementById('assetLocation').addEventListener('change', async function(){
+  if (this.value === '__new__') {
+    const name = prompt('New location name:');
+    if (name && name.trim()) {
+      const id = 'loc_'+Date.now();
+      await setDoc(doc(db,'ada_locations',id), { name:name.trim(), createdAt:new Date().toISOString() });
+      await loadAssetsPage();
+      document.getElementById('assetLocation').value = id;
+      showToast('Location added.');
+    } else { this.value = _locations[0]?.id || ''; }
+  }
+});
+
+async function onAssetFormSubmit(e){
+  e.preventDefault();
+  const itemId = document.getElementById('assetItem').value;
+  const qty = Number(document.getElementById('assetQty').value);
+  const locationId = document.getElementById('assetLocation').value;
+  const notes = document.getElementById('assetNotes').value.trim();
+  if (!itemId || itemId==='__new__' || !locationId || locationId==='__new__') { showToast('Select a valid item and location.', true); return; }
+  const item = _items.find(i=>i.id===itemId);
+  const loc = _locations.find(l=>l.id===locationId);
+  try {
+    const existing = _assets.find(a=>a.itemId===itemId && a.locationId===locationId);
+    if (existing) {
+      await updateDoc(doc(db,'ada_assets',existing.id), {
+        quantity: Number(existing.quantity||0) + qty, notes: notes || existing.notes || '', updatedAt: new Date().toISOString()
+      });
+    } else {
+      const id = 'asset_'+Date.now();
+      await setDoc(doc(db,'ada_assets',id), {
+        itemId, itemName: item?.name||'', locationId, locationName: loc?.name||'', quantity: qty, notes,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      });
+    }
+    document.getElementById('assetForm').reset();
+    showToast('Asset saved.');
+    loadAssetsPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+}
+window.adjustAssetQty = async function(id){
+  const a = _assets.find(x=>x.id===id);
+  if (!a) return;
+  const val = prompt(`Set quantity for ${a.itemName} at ${a.locationName}:`, a.quantity);
+  if (val === null) return;
+  const num = Number(val);
+  if (isNaN(num) || num < 0) { showToast('Enter a valid quantity.', true); return; }
+  try { await updateDoc(doc(db,'ada_assets',id), { quantity:num, updatedAt:new Date().toISOString() }); showToast('Quantity updated.'); loadAssetsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+window.deleteAsset = async function(id){
+  if (!confirm('Delete this asset record?')) return;
+  try { await deleteDoc(doc(db,'ada_assets',id)); showToast('Asset deleted.'); loadAssetsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ═══════════════════ EXPENSES ═══════════════════
+let _pendingBill = null; // {base64, fileName, fileType}
+let _editingExpenseId = null;
+async function onExpenseFileChosen(e){
+  const file = e.target.files[0];
+  const dropEl = document.getElementById('expFileDrop');
+  if (!file) { _pendingBill = null; return; }
+  const validTypes = ['application/pdf','image/jpeg','image/jpg','image/png','image/webp'];
+  if (!validTypes.includes(file.type)) { showToast('Only images or PDF are supported.', true); e.target.value=''; return; }
+  if (file.size > 700*1024) { showToast('Bill file must be under 700 KB. Try compressing the photo.', true); e.target.value=''; return; }
+  const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+  _pendingBill = { base64, fileName:file.name, fileType:file.type };
+  dropEl.classList.add('has-file');
+  dropEl.innerHTML = `<i class="fa-solid fa-check"></i> ${escHtml(file.name)} attached`;
+}
+
+async function loadExpensesPage(){
+  const wrap = document.getElementById('expensesTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    await ensureUsersLoaded();
+    const crewSel = document.getElementById('expCrew');
+    const filterSel = document.getElementById('expFilterCrew');
+    const prevExpCrew = crewSel.value;
+    const prevFilterCrew = filterSel.value;
+    const crewOnly = crewOptionsHtml('').replace('<option value="">— Select Crew —</option>','');
+    crewSel.innerHTML = '<option value="">General / Not crew-specific</option>' + crewOnly;
+    filterSel.innerHTML = '<option value="">All crew</option>' + crewOnly;
+    crewSel.value = prevExpCrew;
+    filterSel.value = prevFilterCrew;
+
+    const snap = await getDocs(collection(db,'ada_expenses'));
+    _expenses = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const filterCrew = filterSel.value;
+    const list = filterCrew ? _expenses.filter(x=>x.crewId===filterCrew) : _expenses;
+    if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses recorded yet.</h3></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Description</th><th>Bill</th><th></th></tr></thead><tbody>
+      ${list.map(x=>`<tr>
+        <td>${formatDate(x.date)}</td>
+        <td><strong>${formatCurrency(x.amount)}</strong></td>
+        <td>${escHtml(x.category||'—')}</td>
+        <td>${x.crewId ? escHtml(x.crewName||crewName(x.crewId)) : '<span style="color:var(--text-3);">General</span>'}</td>
+        <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
+        <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
+        <td style="display:flex;gap:.3rem;">
+          <button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteExpense('${x.id}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading expenses.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+
+window.editExpense = function(id){
+  const x = _expenses.find(e=>e.id===id);
+  if (!x) return;
+  _editingExpenseId = id;
+  document.getElementById('expDate').value = x.date || '';
+  document.getElementById('expAmount').value = x.amount || '';
+  document.getElementById('expCrew').value = x.crewId || '';
+  document.getElementById('expCategory').value = x.category || 'Equipment';
+  document.getElementById('expDescription').value = x.description || '';
+  _pendingBill = null;
+  const dropEl = document.getElementById('expFileDrop');
+  dropEl.classList.toggle('has-file', !!x.billBase64);
+  dropEl.innerHTML = x.billBase64
+    ? `<i class="fa-solid fa-check"></i> Bill already attached — choose a file to replace it`
+    : '<i class="fa-solid fa-cloud-arrow-up"></i> Click to attach a photo or PDF of the bill (max 700 KB)';
+  document.getElementById('expSubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Expense';
+  document.getElementById('expCancelEditBtn').style.display = '';
+  document.getElementById('expenseForm').scrollIntoView({behavior:'smooth', block:'start'});
+};
+window.cancelExpenseEdit = function(){
+  _editingExpenseId = null;
+  _pendingBill = null;
+  document.getElementById('expenseForm').reset();
+  document.getElementById('expDate').value = todayISO();
+  const dropEl = document.getElementById('expFileDrop');
+  dropEl.classList.remove('has-file');
+  dropEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Click to attach a photo or PDF of the bill (max 700 KB)';
+  document.getElementById('expSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add Expense';
+  document.getElementById('expCancelEditBtn').style.display = 'none';
+};
+
+async function onExpenseFormSubmit(e){
+  e.preventDefault();
+  const btn = document.getElementById('expSubmitBtn');
+  const editing = _editingExpenseId;
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+  const date = document.getElementById('expDate').value;
+  const amount = Number(document.getElementById('expAmount').value);
+  const crewId = document.getElementById('expCrew').value;
+  const category = document.getElementById('expCategory').value;
+  const description = document.getElementById('expDescription').value.trim();
+  try {
+    const data = {
+      date, amount, category, description,
+      crewId: crewId || null, crewName: crewId ? crewName(crewId) : ''
+    };
+    if (_pendingBill) { data.billBase64 = _pendingBill.base64; data.billFileName = _pendingBill.fileName; data.billFileType = _pendingBill.fileType; }
+    if (editing) {
+      await updateDoc(doc(db,'ada_expenses',editing), data);
+    } else {
+      data.createdAt = new Date().toISOString();
+      data.createdBy = window.adaCurrentUser?.uid || null;
+      await setDoc(doc(db,'ada_expenses','exp_'+Date.now()), data);
+    }
+    cancelExpenseEdit();
+    showToast(editing ? 'Expense updated.' : 'Expense added.');
+    loadExpensesPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally {
+    btn.disabled = false;
+    btn.innerHTML = _editingExpenseId ? '<i class="fa-solid fa-pen"></i> Update Expense' : '<i class="fa-solid fa-plus"></i> Add Expense';
+  }
+}
+window.viewBill = function(id){
+  const x = _expenses.find(e=>e.id===id);
+  if (!x || !x.billBase64) return;
+  const win = window.open('', '_blank');
+  if (x.billFileType === 'application/pdf') win.document.write(`<html><body style="margin:0"><embed src="${x.billBase64}" type="application/pdf" width="100%" height="100%"></body></html>`);
+  else win.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${x.billBase64}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
+};
+window.deleteExpense = async function(id){
+  if (!confirm('Delete this expense?')) return;
+  try { await deleteDoc(doc(db,'ada_expenses',id)); showToast('Expense deleted.'); loadExpensesPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+window.exportExpensesExcel = function(){
+  if (!_expenses.length) { showToast('No expenses to export.', true); return; }
+  const rows = _expenses.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Description:x.description||'' }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+  XLSX.writeFile(wb, 'ada_expenses.xlsx');
+};
+
+// ═══════════════════ REVENUE ═══════════════════
+async function loadRevenuePage(){
+  const wrap = document.getElementById('revenueTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const snap = await getDocs(collection(db,'ada_revenue'));
+    _revenue = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const yt = _revenue.filter(r=>r.source==='YouTube').reduce((s,r)=>s+Number(r.amount||0),0);
+    const ig = _revenue.filter(r=>r.source==='Instagram').reduce((s,r)=>s+Number(r.amount||0),0);
+    document.getElementById('revStats').innerHTML = `
+      <div class="stat-card"><div class="stat-label">YouTube</div><div class="stat-value">${formatCurrency(yt)}</div></div>
+      <div class="stat-card"><div class="stat-label">Instagram</div><div class="stat-value">${formatCurrency(ig)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value pos">${formatCurrency(yt+ig)}</div></div>
+    `;
+    if (!_revenue.length) { wrap.innerHTML = `<div class="empty"><h3>No revenue recorded yet.</h3></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Description</th><th></th></tr></thead><tbody>
+      ${_revenue.map(r=>`<tr>
+        <td>${formatDate(r.date)}</td>
+        <td><span class="pill pill-${r.source.toLowerCase()}">${escHtml(r.source)}</span></td>
+        <td><strong>${formatCurrency(r.amount)}</strong></td>
+        <td style="font-size:.8rem;">${escHtml(r.description||'—')}</td>
+        <td style="display:flex;gap:.3rem;">
+          <button class="mini-btn" onclick="editRevenue('${r.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteRevenue('${r.id}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading revenue.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+let _editingRevenueId = null;
+window.editRevenue = function(id){
+  const r = _revenue.find(x=>x.id===id);
+  if (!r) return;
+  _editingRevenueId = id;
+  document.getElementById('revSource').value = r.source || 'YouTube';
+  document.getElementById('revDate').value = r.date || '';
+  document.getElementById('revAmount').value = r.amount || '';
+  document.getElementById('revDescription').value = r.description || '';
+  document.getElementById('revSubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Revenue';
+  document.getElementById('revCancelEditBtn').style.display = '';
+  document.getElementById('revenueForm').scrollIntoView({behavior:'smooth', block:'start'});
+};
+window.cancelRevenueEdit = function(){
+  _editingRevenueId = null;
+  document.getElementById('revenueForm').reset();
+  document.getElementById('revDate').value = todayISO();
+  document.getElementById('revSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add Revenue';
+  document.getElementById('revCancelEditBtn').style.display = 'none';
+};
+async function onRevenueFormSubmit(e){
+  e.preventDefault();
+  const editing = _editingRevenueId;
+  const btn = document.getElementById('revSubmitBtn');
+  btn.disabled = true;
+  const source = document.getElementById('revSource').value;
+  const date = document.getElementById('revDate').value;
+  const amount = Number(document.getElementById('revAmount').value);
+  const description = document.getElementById('revDescription').value.trim();
+  try {
+    if (editing) {
+      await updateDoc(doc(db,'ada_revenue',editing), { source, date, amount, description });
+    } else {
+      await setDoc(doc(db,'ada_revenue','rev_'+Date.now()), { source, date, amount, description, createdAt:new Date().toISOString(), createdBy: window.adaCurrentUser?.uid||null });
+    }
+    cancelRevenueEdit();
+    showToast(editing ? 'Revenue updated.' : 'Revenue added.');
+    loadRevenuePage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+}
+window.deleteRevenue = async function(id){
+  if (!confirm('Delete this revenue entry?')) return;
+  try { await deleteDoc(doc(db,'ada_revenue',id)); showToast('Revenue deleted.'); loadRevenuePage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+window.exportRevenueExcel = function(){
+  if (!_revenue.length) { showToast('No revenue to export.', true); return; }
+  const rows = _revenue.map(r=>({ Date:r.date, Source:r.source, Amount:r.amount, Description:r.description||'' }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Revenue');
+  XLSX.writeFile(wb, 'ada_revenue.xlsx');
+};
+
+// ═══════════════════ LIABILITY ═══════════════════
+async function loadLiabilityPage(){
+  const wrap = document.getElementById('liabilityTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    await ensureUsersLoaded();
+    document.getElementById('liabCrew').innerHTML = crewOptionsHtml('');
+    await renderBalanceGrid('liabilityBalanceGrid');
+    const snap = await getDocs(collection(db,'ada_liability'));
+    _liability = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if (!_liability.length) { wrap.innerHTML = `<div class="empty"><h3>No liability recorded yet.</h3></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Description</th><th></th></tr></thead><tbody>
+      ${_liability.map(l=>`<tr>
+        <td>${formatDate(l.date)}</td>
+        <td>${escHtml(l.crewName||crewName(l.crewId))}</td>
+        <td><strong>${formatCurrency(l.amount)}</strong></td>
+        <td style="font-size:.8rem;">${escHtml(l.description||'—')}</td>
+        <td style="display:flex;gap:.3rem;">
+          <button class="mini-btn" onclick="editLiability('${l.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteLiability('${l.id}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading liability.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+let _editingLiabilityId = null;
+window.editLiability = function(id){
+  const l = _liability.find(x=>x.id===id);
+  if (!l) return;
+  _editingLiabilityId = id;
+  document.getElementById('liabCrew').value = l.crewId || '';
+  document.getElementById('liabAmount').value = l.amount || '';
+  document.getElementById('liabDate').value = l.date || '';
+  document.getElementById('liabDescription').value = l.description || '';
+  document.getElementById('liabSubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update';
+  document.getElementById('liabCancelEditBtn').style.display = '';
+  document.getElementById('liabilityForm').scrollIntoView({behavior:'smooth', block:'start'});
+};
+window.cancelLiabilityEdit = function(){
+  _editingLiabilityId = null;
+  document.getElementById('liabilityForm').reset();
+  document.getElementById('liabDate').value = todayISO();
+  document.getElementById('liabSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add';
+  document.getElementById('liabCancelEditBtn').style.display = 'none';
+};
+async function onLiabilityFormSubmit(e){
+  e.preventDefault();
+  const editing = _editingLiabilityId;
+  const crewId = document.getElementById('liabCrew').value;
+  const amount = Number(document.getElementById('liabAmount').value);
+  const date = document.getElementById('liabDate').value;
+  const description = document.getElementById('liabDescription').value.trim();
+  if (!crewId) { showToast('Select a crew member.', true); return; }
+  const btn = document.getElementById('liabSubmitBtn');
+  btn.disabled = true;
+  try {
+    if (editing) {
+      await updateDoc(doc(db,'ada_liability',editing), { crewId, crewName:crewName(crewId), amount, date, description });
+    } else {
+      await setDoc(doc(db,'ada_liability','liab_'+Date.now()), { crewId, crewName:crewName(crewId), amount, date, description, createdAt:new Date().toISOString(), createdBy: window.adaCurrentUser?.uid||null });
+    }
+    cancelLiabilityEdit();
+    showToast(editing ? 'Liability updated.' : 'Liability recorded.');
+    loadLiabilityPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+}
+window.deleteLiability = async function(id){
+  if (!confirm('Delete this liability entry?')) return;
+  try { await deleteDoc(doc(db,'ada_liability',id)); showToast('Deleted.'); loadLiabilityPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ═══════════════════ PAYMENTS ═══════════════════
+async function loadPaymentsPage(){
+  const wrap = document.getElementById('paymentsTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    await ensureUsersLoaded();
+    document.getElementById('payCrew').innerHTML = crewOptionsHtml('');
+    await renderBalanceGrid('paymentsBalanceGrid');
+    const snap = await getDocs(collection(db,'ada_payments'));
+    _payments = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if (!_payments.length) { wrap.innerHTML = `<div class="empty"><h3>No payments recorded yet.</h3></div>`; return; }
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>
+      ${_payments.map(p=>`<tr>
+        <td>${formatDate(p.date)}</td>
+        <td>${escHtml(p.crewName||crewName(p.crewId))}</td>
+        <td><strong>${formatCurrency(p.amount)}</strong></td>
+        <td>${escHtml(p.method||'—')}</td>
+        <td style="font-size:.8rem;">${escHtml(p.notes||'—')}</td>
+        <td style="display:flex;gap:.3rem;">
+          <button class="mini-btn" onclick="editPayment('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deletePayment('${p.id}')"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading payments.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+let _editingPaymentId = null;
+window.editPayment = function(id){
+  const p = _payments.find(x=>x.id===id);
+  if (!p) return;
+  _editingPaymentId = id;
+  document.getElementById('payCrew').value = p.crewId || '';
+  document.getElementById('payAmount').value = p.amount || '';
+  document.getElementById('payDate').value = p.date || '';
+  document.getElementById('payMethod').value = p.method || 'Bank Transfer';
+  document.getElementById('payNotes').value = p.notes || '';
+  document.getElementById('paySubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Payment';
+  document.getElementById('payCancelEditBtn').style.display = '';
+  document.getElementById('paymentForm').scrollIntoView({behavior:'smooth', block:'start'});
+};
+window.cancelPaymentEdit = function(){
+  _editingPaymentId = null;
+  document.getElementById('paymentForm').reset();
+  document.getElementById('payDate').value = todayISO();
+  document.getElementById('paySubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add Payment';
+  document.getElementById('payCancelEditBtn').style.display = 'none';
+};
+async function onPaymentFormSubmit(e){
+  e.preventDefault();
+  const editing = _editingPaymentId;
+  const crewId = document.getElementById('payCrew').value;
+  const amount = Number(document.getElementById('payAmount').value);
+  const date = document.getElementById('payDate').value;
+  const method = document.getElementById('payMethod').value;
+  const notes = document.getElementById('payNotes').value.trim();
+  if (!crewId) { showToast('Select a crew member.', true); return; }
+  const btn = document.getElementById('paySubmitBtn');
+  btn.disabled = true;
+  try {
+    if (editing) {
+      await updateDoc(doc(db,'ada_payments',editing), { crewId, crewName:crewName(crewId), amount, date, method, notes });
+    } else {
+      await setDoc(doc(db,'ada_payments','pay_'+Date.now()), { crewId, crewName:crewName(crewId), amount, date, method, notes, createdAt:new Date().toISOString(), createdBy: window.adaCurrentUser?.uid||null });
+    }
+    cancelPaymentEdit();
+    showToast(editing ? 'Payment updated.' : 'Payment recorded.');
+    loadPaymentsPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+}
+window.deletePayment = async function(id){
+  if (!confirm('Delete this payment entry?')) return;
+  try { await deleteDoc(doc(db,'ada_payments',id)); showToast('Deleted.'); loadPaymentsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ═══════════════════ P&L ═══════════════════
+async function loadPnLPage(){
+  const statsWrap = document.getElementById('pnlStats');
+  const monthlyWrap = document.getElementById('pnlMonthlyWrap');
+  const catWrap = document.getElementById('pnlCategoryWrap');
+  statsWrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const from = document.getElementById('pnlFrom').value;
+    const to = document.getElementById('pnlTo').value;
+    const [revSnap, expSnap] = await Promise.all([getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses'))]);
+    let revenue = revSnap.docs.map(d=>d.data());
+    let expenses = expSnap.docs.map(d=>d.data());
+    if (from) { revenue = revenue.filter(r=>r.date>=from); expenses = expenses.filter(r=>r.date>=from); }
+    if (to) { revenue = revenue.filter(r=>r.date<=to); expenses = expenses.filter(r=>r.date<=to); }
+    const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
+    const totalExp = expenses.reduce((s,r)=>s+Number(r.amount||0),0);
+    const net = totalRev - totalExp;
+    statsWrap.innerHTML = `
+      <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value pos">${formatCurrency(totalRev)}</div></div>
+      <div class="stat-card"><div class="stat-label">Expenses</div><div class="stat-value neg">${formatCurrency(totalExp)}</div></div>
+      <div class="stat-card"><div class="stat-label">Net P&amp;L</div><div class="stat-value ${net>=0?'pos':'neg'}">${formatCurrency(net)}</div></div>
+    `;
+    // monthly breakdown
+    const months = {};
+    revenue.forEach(r=>{ const m=(r.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0}; months[m].rev+=Number(r.amount||0); });
+    expenses.forEach(x=>{ const m=(x.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0}; months[m].exp+=Number(x.amount||0); });
+    const sortedMonths = Object.keys(months).sort();
+    if (!sortedMonths.length) { monthlyWrap.innerHTML = `<div class="empty"><h3>No data in this range.</h3></div>`; }
+    else {
+      monthlyWrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead><tbody>
+        ${sortedMonths.map(m=>{ const d=months[m]; const n=d.rev-d.exp; return `<tr><td>${m}</td><td>${formatCurrency(d.rev)}</td><td>${formatCurrency(d.exp)}</td><td style="color:${n>=0?'var(--success)':'var(--error)'};font-weight:700;">${formatCurrency(n)}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
+    }
+    // by category
+    const cats = {};
+    expenses.forEach(x=>{ const c=x.category||'Misc'; cats[c]=(cats[c]||0)+Number(x.amount||0); });
+    const catKeys = Object.keys(cats).sort((a,b)=>cats[b]-cats[a]);
+    if (!catKeys.length) { catWrap.innerHTML = `<div class="empty"><h3>No expenses in this range.</h3></div>`; }
+    else {
+      catWrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody>
+        ${catKeys.map(c=>`<tr><td>${escHtml(c)}</td><td><strong>${formatCurrency(cats[c])}</strong></td></tr>`).join('')}
+      </tbody></table></div>`;
+    }
+    window._pnlExport = { revenue, expenses, months, sortedMonths, cats, catKeys, totalRev, totalExp, net };
+  } catch(err) { statsWrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading P&amp;L.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+window.exportPnLExcel = function(){
+  const d = window._pnlExport;
+  if (!d) { showToast('Nothing to export yet.', true); return; }
+  const wb = XLSX.utils.book_new();
+  const summary = [{ Metric:'Total Revenue', Value:d.totalRev }, { Metric:'Total Expenses', Value:d.totalExp }, { Metric:'Net P&L', Value:d.net }];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
+  const monthly = d.sortedMonths.map(m=>({ Month:m, Revenue:d.months[m].rev, Expenses:d.months[m].exp, Net:d.months[m].rev-d.months[m].exp }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthly), 'Monthly');
+  const byCat = d.catKeys.map(c=>({ Category:c, Amount:d.cats[c] }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byCat), 'By Category');
+  XLSX.writeFile(wb, 'ada_pnl_report.xlsx');
+};
+</script>
+</body>
+</html>
