@@ -229,19 +229,19 @@ body.no-scroll{overflow:hidden;}
     <div class="nav-group">
       <div class="nav-item active" data-page="dashboard"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></div>
       <div class="nav-item" data-page="users" id="navUsers"><i class="fa-solid fa-users"></i><span>Users</span></div>
-      <div class="nav-item" data-page="items"><i class="fa-solid fa-box"></i><span>Items</span></div>
-      <div class="nav-item" data-page="locations"><i class="fa-solid fa-location-dot"></i><span>Locations</span></div>
-      <div class="nav-item" data-page="clients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
-      <div class="nav-item" data-page="assets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
+      <div class="nav-item" data-page="items" id="navItems"><i class="fa-solid fa-box"></i><span>Items</span></div>
+      <div class="nav-item" data-page="locations" id="navLocations"><i class="fa-solid fa-location-dot"></i><span>Locations</span></div>
+      <div class="nav-item" data-page="clients" id="navClients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
+      <div class="nav-item" data-page="assets" id="navAssets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
       <div class="nav-item" data-page="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></div>
       <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
       <div class="nav-item" data-page="liability"><i class="fa-solid fa-hand-holding-dollar"></i><span>Crew Liability</span></div>
       <div class="nav-item" data-page="payments"><i class="fa-solid fa-money-bill-transfer"></i><span>Crew Payments</span></div>
-      <div class="nav-item" data-page="pnl"><i class="fa-solid fa-chart-line"></i><span>P&amp;L Report</span></div>
+      <div class="nav-item" data-page="pnl" id="navPnl"><i class="fa-solid fa-chart-line"></i><span>P&amp;L Report</span></div>
       <div class="nav-item logout-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
     </div>
     <div class="sidebar-footer">
-      <strong>Signed in as</strong>
+      <strong>Welcome</strong>
       <span id="sidebarUserName">—</span>
     </div>
   </aside>
@@ -333,7 +333,7 @@ body.no-scroll{overflow:hidden;}
     </section>
 
     <section class="page" id="page-assets">
-      <div class="card panel">
+      <div class="card panel" id="addAssetCard">
         <div class="panel-head"><h2>Add / Update Asset Stock</h2><p>Select an item and location — quantity adds to existing stock there.</p></div>
         <form id="assetForm" class="form-grid">
           <div class="field"><label>Item</label><select class="input" id="assetItem" required></select></div>
@@ -388,7 +388,7 @@ body.no-scroll{overflow:hidden;}
     </section>
 
     <section class="page" id="page-revenue">
-      <div class="card panel">
+      <div class="card panel" id="addRevenueCard">
         <div class="panel-head"><h2>Add Revenue</h2></div>
         <form id="revenueForm" class="form-grid">
           <div class="field"><label>Source</label><select class="input" id="revSource"><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option></select></div>
@@ -417,7 +417,11 @@ body.no-scroll{overflow:hidden;}
         <div class="panel-head"><h2>Balance by Crew Member</h2><p>Total liability recorded minus total payments made.</p></div>
         <div class="balance-grid" id="liabilityBalanceGrid" style="margin-top:.8rem;"></div>
       </div>
-      <div class="card panel">
+      <div class="card">
+        <div class="panel-head"><h2>Available Balance</h2><p>Total liability recorded minus total expenses recorded against that crew member.</p></div>
+        <div class="balance-grid" id="availableBalanceGrid" style="margin-top:.8rem;"></div>
+      </div>
+      <div class="card panel" id="addLiabilityCard">
         <div class="panel-head"><h2>Record Liability</h2><p>Amount owed to a crew member (fee accrued, dues, etc).</p></div>
         <form id="liabilityForm" class="form-grid">
           <div class="field"><label>Crew Member</label><select class="input" id="liabCrew" required></select></div>
@@ -441,7 +445,7 @@ body.no-scroll{overflow:hidden;}
         <div class="panel-head"><h2>Balance by Crew Member</h2></div>
         <div class="balance-grid" id="paymentsBalanceGrid" style="margin-top:.8rem;"></div>
       </div>
-      <div class="card panel">
+      <div class="card panel" id="addPaymentCard">
         <div class="panel-head"><h2>Record Payment</h2><p>Payment made to a crew member.</p></div>
         <form id="paymentForm" class="form-grid">
           <div class="field"><label>Crew Member</label><select class="input" id="payCrew" required></select></div>
@@ -560,6 +564,7 @@ window.adaProfile = null;
 window.__creatingAdmin = false;
 window.__adminLaunched = false;
 let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[];
+let _expensesVisible = [];
 
 const pageConfig = {
   dashboard:{t:'Dashboard', s:'Overview of crew finances and assets.'},
@@ -703,8 +708,19 @@ function launchAdminApp(user, profile){
   badge.classList.toggle('role-crew', !isAdmin);
   const createLoginCard = document.getElementById('createLoginCard');
   if (createLoginCard) createLoginCard.style.display = isAdmin ? '' : 'none';
-  const navUsers = document.getElementById('navUsers');
-  if (navUsers) navUsers.style.display = isAdmin ? '' : 'none';
+
+  // Crew members only get: Dashboard, Expenses (record own), and view-only
+  // access to Assets / Revenue / Crew Liability / Crew Payments. Everything
+  // else (Users, Items, Locations, Clients) is admin-only.
+  ['navUsers','navItems','navLocations','navClients','navPnl'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? '' : 'none';
+  });
+  // Crew can view Assets / Revenue / Liability / Payments history but cannot add/edit them.
+  ['addAssetCard','addRevenueCard','addLiabilityCard','addPaymentCard'].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin ? '' : 'none';
+  });
 
   if (window.__adminLaunched) return;
   window.__adminLaunched = true;
@@ -732,7 +748,8 @@ function launchAdminApp(user, profile){
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  if (name === 'users' && window.adaCurrentRole !== 'admin') name = 'dashboard';
+  const adminOnlyPages = ['users','items','locations','clients','pnl'];
+  if (adminOnlyPages.includes(name) && window.adaCurrentRole !== 'admin') name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.classList.remove('active'));
@@ -794,22 +811,26 @@ async function loadDashboardPage(){
   const alertsEl = document.getElementById('dashAlerts');
   wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
-    const [revSnap, expSnap, assetSnap] = await Promise.all([
-      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets'))
+    const [revSnap, expSnap, assetSnap, liabSnap] = await Promise.all([
+      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_liability'))
     ]);
     await ensureUsersLoaded();
     const revenue = revSnap.docs.map(d=>d.data());
     const expenses = expSnap.docs.map(d=>d.data());
     const assets = assetSnap.docs.map(d=>d.data());
+    const liability = liabSnap.docs.map(d=>d.data());
     const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
     const totalExp = expenses.reduce((s,r)=>s+Number(r.amount||0),0);
+    const totalLiab = liability.reduce((s,l)=>s+Number(l.amount||0),0);
     const net = totalRev - totalExp;
+    const teamAvailable = totalLiab - totalExp;
     const totalAssetQty = assets.reduce((s,a)=>s+Number(a.quantity||0),0);
     const crewCount = _users.filter(u=>u.role==='crew' && u.status!=='inactive').length;
     wrap.innerHTML = `
       <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${formatCurrency(totalRev)}</div></div>
       <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${formatCurrency(totalExp)}</div></div>
       <div class="stat-card"><div class="stat-label">Net P&amp;L</div><div class="stat-value ${net>=0?'pos':'neg'}">${formatCurrency(net)}</div></div>
+      <div class="stat-card"><div class="stat-label">Available Balance (Team)</div><div class="stat-value ${teamAvailable>=0?'pos':'neg'}">${formatCurrency(teamAvailable)}</div></div>
       <div class="stat-card"><div class="stat-label">Asset Units</div><div class="stat-value">${totalAssetQty}</div></div>
       <div class="stat-card"><div class="stat-label">Active Crew</div><div class="stat-value">${crewCount}</div></div>
     `;
@@ -862,6 +883,33 @@ async function renderBalanceGrid(elId){
   `).join('');
 }
 
+async function computeAvailableBalances(){
+  await ensureUsersLoaded();
+  const [liabSnap, expSnap] = await Promise.all([getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_expenses'))]);
+  const liab = liabSnap.docs.map(d=>d.data());
+  const exp = expSnap.docs.map(d=>d.data());
+  const crew = _users.filter(u=>u.role==='crew');
+  return crew.map(c=>{
+    const totalLiab = liab.filter(l=>l.crewId===c.id).reduce((s,l)=>s+Number(l.amount||0),0);
+    const totalExp = exp.filter(x=>x.crewId===c.id).reduce((s,x)=>s+Number(x.amount||0),0);
+    return { crewId:c.id, name:c.name, totalLiab, totalExp, available: totalLiab-totalExp };
+  });
+}
+
+async function renderAvailableBalanceGrid(elId){
+  const wrap = document.getElementById(elId);
+  const balances = await computeAvailableBalances();
+  if (!balances.length) { wrap.innerHTML = `<div class="empty"><h3>No crew members yet.</h3><p>Add crew logins from the Users page.</p></div>`; return; }
+  wrap.innerHTML = balances.map(b=>`
+    <div class="balance-card">
+      <div class="name">${escHtml(b.name)}</div>
+      <div class="row"><span>Liability</span><strong>${formatCurrency(b.totalLiab)}</strong></div>
+      <div class="row"><span>Expenses</span><strong>${formatCurrency(b.totalExp)}</strong></div>
+      <div class="due ${b.available>=0?'zero':'pos'}">${formatCurrency(b.available)} available</div>
+    </div>
+  `).join('');
+}
+
 // ═══════════════════ USERS ═══════════════════
 async function loadUsersPage(){
   const wrap = document.getElementById('usersTableWrap');
@@ -878,6 +926,7 @@ async function loadUsersPage(){
         <td><span class="pill ${u.status==='inactive'?'pill-inactive':'pill-active'}">${u.status==='inactive'?'Inactive':'Active'}</span></td>
         <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
           <button class="mini-btn" onclick="resetUserPassword('${escHtml(u.email)}')"><i class="fa-solid fa-key"></i> Reset</button>
+          ${u.id===window.adaCurrentUser?.uid ? '' : `<button class="mini-btn" onclick="toggleUserRole('${u.id}','${u.role==='admin'?'crew':'admin'}')"><i class="fa-solid fa-arrow-up-right-dots"></i> ${u.role==='admin'?'Demote to Crew':'Promote to Admin'}</button>`}
           ${u.id===window.adaCurrentUser?.uid ? '' : `<button class="mini-btn" onclick="toggleUserStatus('${u.id}','${u.status==='inactive'?'active':'inactive'}')"><i class="fa-solid fa-power-off"></i> ${u.status==='inactive'?'Activate':'Deactivate'}</button>`}
         </td>
       </tr>`).join('')}
@@ -890,6 +939,19 @@ window.resetUserPassword = async function(email){
   try {
     await sendPasswordResetEmail(auth, email);
     showToast(`Reset email sent to ${email}.`);
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+window.toggleUserRole = async function(uid, newRole){
+  if (window.adaCurrentRole !== 'admin') return;
+  const msg = newRole === 'admin'
+    ? 'Promote this user to Admin? They will get full access to Users, Items, Locations, Clients, Assets and P&L.'
+    : 'Demote this user to Crew? They will lose admin access and only be able to record their own expenses and view Assets/Revenue/Liability/Payments.';
+  if (!confirm(msg)) return;
+  try {
+    await updateDoc(doc(db,'ada_users',uid), { role:newRole });
+    showToast(newRole==='admin' ? 'User promoted to Admin.' : 'User demoted to Crew.');
+    loadUsersPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -1041,23 +1103,25 @@ async function loadAssetsPage(){
     locSel.innerHTML = _locations.map(l=>`<option value="${l.id}">${escHtml(l.name)}</option>`).join('') + `<option value="__new__">+ Add new location…</option>`;
 
     if (!_assets.length) { wrap.innerHTML = `<div class="empty"><h3>No assets recorded yet.</h3><p>Add your first asset above.</p></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th><th></th></tr></thead><tbody>
+    const canEditAssets = window.adaCurrentRole === 'admin';
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th>${canEditAssets?'<th></th>':''}</tr></thead><tbody>
       ${_assets.sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'')).map(a=>`<tr>
         <td><strong>${escHtml(a.itemName)}</strong></td>
         <td>${a.quantity}</td>
         <td>${escHtml(a.locationName)}</td>
         <td style="font-size:.78rem;">${escHtml(a.notes||'—')}</td>
         <td style="font-size:.76rem;">${a.updatedAt?formatDate(a.updatedAt.slice(0,10)):'—'}</td>
-        <td style="display:flex;gap:.3rem;">
+        ${canEditAssets ? `<td style="display:flex;gap:.3rem;">
           <button class="mini-btn" onclick="adjustAssetQty('${a.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="mini-btn mini-btn-danger" onclick="deleteAsset('${a.id}')"><i class="fa-solid fa-trash"></i></button>
-        </td>
+        </td>` : ''}
       </tr>`).join('')}
     </tbody></table></div>`;
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading assets.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 
 document.getElementById('assetItem').addEventListener('change', async function(){
+  if (window.adaCurrentRole !== 'admin') return;
   if (this.value === '__new__') {
     const name = prompt('New item name:');
     if (name && name.trim()) {
@@ -1070,6 +1134,7 @@ document.getElementById('assetItem').addEventListener('change', async function()
   }
 });
 document.getElementById('assetLocation').addEventListener('change', async function(){
+  if (window.adaCurrentRole !== 'admin') return;
   if (this.value === '__new__') {
     const name = prompt('New location name:');
     if (name && name.trim()) {
@@ -1084,6 +1149,7 @@ document.getElementById('assetLocation').addEventListener('change', async functi
 
 async function onAssetFormSubmit(e){
   e.preventDefault();
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot add assets.', true); return; }
   const itemId = document.getElementById('assetItem').value;
   const qty = Number(document.getElementById('assetQty').value);
   const locationId = document.getElementById('assetLocation').value;
@@ -1110,6 +1176,7 @@ async function onAssetFormSubmit(e){
   } catch(err) { showToast('Error: '+err.message, true); }
 }
 window.adjustAssetQty = async function(id){
+  if (window.adaCurrentRole !== 'admin') return;
   const a = _assets.find(x=>x.id===id);
   if (!a) return;
   const val = prompt(`Set quantity for ${a.itemName} at ${a.locationName}:`, a.quantity);
@@ -1120,6 +1187,7 @@ window.adjustAssetQty = async function(id){
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.deleteAsset = async function(id){
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete assets.', true); return; }
   if (!confirm('Delete this asset record?')) return;
   try { await deleteDoc(doc(db,'ada_assets',id)); showToast('Asset deleted.'); loadAssetsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
@@ -1147,15 +1215,32 @@ async function loadExpensesPage(){
   try {
     await ensureUsersLoaded();
     await ensureClientsLoaded();
+    const isAdminNow = window.adaCurrentRole === 'admin';
+    const currentUid = window.adaCurrentUser?.uid || null;
     const crewSel = document.getElementById('expCrew');
     const filterSel = document.getElementById('expFilterCrew');
     const prevExpCrew = crewSel.value;
     const prevFilterCrew = filterSel.value;
     const crewOnly = crewOptionsHtml('').replace('<option value="">— Select Crew —</option>','');
-    crewSel.innerHTML = '<option value="">General / Not crew-specific</option>' + crewOnly;
+
+    // Everyone can filter/browse by crew member — this only affects the
+    // history view. The "Add Expense" crew field below is handled separately
+    // and is always locked to yourself if you're a crew member.
+    filterSel.style.display = '';
     filterSel.innerHTML = '<option value="">All crew</option>' + crewOnly;
-    crewSel.value = prevExpCrew;
     filterSel.value = prevFilterCrew;
+
+    if (isAdminNow) {
+      crewSel.disabled = false;
+      crewSel.innerHTML = '<option value="">General / Not crew-specific</option>' + crewOnly;
+      crewSel.value = prevExpCrew;
+    } else {
+      // Crew members can only record expenses under their own name —
+      // they cannot add an expense for anyone else.
+      const myName = window.adaProfile?.name || window.adaProfile?.email || 'Me';
+      crewSel.innerHTML = `<option value="${currentUid}" selected>${escHtml(myName)}</option>`;
+      crewSel.disabled = true;
+    }
 
     const clientSel = document.getElementById('expClient');
     const filterClientSel = document.getElementById('expFilterClient');
@@ -1169,13 +1254,18 @@ async function loadExpensesPage(){
 
     const snap = await getDocs(collection(db,'ada_expenses'));
     _expenses = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const filterCrew = filterSel.value;
     const filterClient = filterClientSel.value;
+    const filterCrew = filterSel.value;
+    // Crew members can now view everyone's expenses, same as admin —
+    // they just can't add/edit/delete anything that isn't their own.
     let list = filterCrew ? _expenses.filter(x=>x.crewId===filterCrew) : _expenses;
     if (filterClient) list = list.filter(x=>x.clientId===filterClient);
+    _expensesVisible = list;
     if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses recorded yet.</h3></div>`; return; }
     wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Client</th><th>Description</th><th>Bill</th><th></th></tr></thead><tbody>
-      ${list.map(x=>`<tr>
+      ${list.map(x=>{
+        const isOwn = isAdminNow || x.crewId === currentUid;
+        return `<tr>
         <td>${formatDate(x.date)}</td>
         <td><strong>${formatCurrency(x.amount)}</strong></td>
         <td>${escHtml(x.category||'—')}</td>
@@ -1184,10 +1274,10 @@ async function loadExpensesPage(){
         <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
         <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
         <td style="display:flex;gap:.3rem;">
-          <button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
-          <button class="mini-btn mini-btn-danger" onclick="deleteExpense('${x.id}')"><i class="fa-solid fa-trash"></i></button>
+          ${isOwn ? `<button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteExpense('${x.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
         </td>
-      </tr>`).join('')}
+      </tr>`;}).join('')}
     </tbody></table></div>`;
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading expenses.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
@@ -1195,6 +1285,7 @@ async function loadExpensesPage(){
 window.editExpense = function(id){
   const x = _expenses.find(e=>e.id===id);
   if (!x) return;
+  if (window.adaCurrentRole !== 'admin' && x.crewId !== window.adaCurrentUser?.uid) return;
   _editingExpenseId = id;
   document.getElementById('expDate').value = x.date || '';
   document.getElementById('expAmount').value = x.amount || '';
@@ -1231,7 +1322,10 @@ async function onExpenseFormSubmit(e){
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
   const date = document.getElementById('expDate').value;
   const amount = Number(document.getElementById('expAmount').value);
-  const crewId = document.getElementById('expCrew').value;
+  const isAdminNow = window.adaCurrentRole === 'admin';
+  // Crew can only ever record expenses under their own name, even if the
+  // (disabled) field were tampered with client-side.
+  const crewId = isAdminNow ? document.getElementById('expCrew').value : (window.adaCurrentUser?.uid || '');
   const clientId = document.getElementById('expClient').value;
   const category = document.getElementById('expCategory').value;
   const description = document.getElementById('expDescription').value.trim();
@@ -1266,13 +1360,16 @@ window.viewBill = function(id){
   else win.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${x.billBase64}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
 };
 window.deleteExpense = async function(id){
+  const x = _expenses.find(e=>e.id===id);
+  if (x && window.adaCurrentRole !== 'admin' && x.crewId !== window.adaCurrentUser?.uid) { showToast('You can only delete your own expenses.', true); return; }
   if (!confirm('Delete this expense?')) return;
   try { await deleteDoc(doc(db,'ada_expenses',id)); showToast('Expense deleted.'); loadExpensesPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.exportExpensesExcel = function(){
-  if (!_expenses.length) { showToast('No expenses to export.', true); return; }
-  const rows = _expenses.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Client:x.clientName||'', Description:x.description||'' }));
+  const rows_source = _expensesVisible;
+  if (!rows_source.length) { showToast('No expenses to export.', true); return; }
+  const rows = rows_source.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Client:x.clientName||'', Description:x.description||'' }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
@@ -1300,23 +1397,25 @@ async function loadRevenuePage(){
       <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value pos">${formatCurrency(yt+ig)}</div></div>
     `;
     if (!_revenue.length) { wrap.innerHTML = `<div class="empty"><h3>No revenue recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Client</th><th>Description</th><th></th></tr></thead><tbody>
+    const canEditRevenue = window.adaCurrentRole === 'admin';
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Client</th><th>Description</th>${canEditRevenue?'<th></th>':''}</tr></thead><tbody>
       ${_revenue.map(r=>`<tr>
         <td>${formatDate(r.date)}</td>
         <td><span class="pill pill-${r.source.toLowerCase()}">${escHtml(r.source)}</span></td>
         <td><strong>${formatCurrency(r.amount)}</strong></td>
         <td>${r.clientId ? escHtml(r.clientName||clientNameOf(r.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
         <td style="font-size:.8rem;">${escHtml(r.description||'—')}</td>
-        <td style="display:flex;gap:.3rem;">
+        ${canEditRevenue ? `<td style="display:flex;gap:.3rem;">
           <button class="mini-btn" onclick="editRevenue('${r.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="mini-btn mini-btn-danger" onclick="deleteRevenue('${r.id}')"><i class="fa-solid fa-trash"></i></button>
-        </td>
+        </td>` : ''}
       </tr>`).join('')}
     </tbody></table></div>`;
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading revenue.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 let _editingRevenueId = null;
 window.editRevenue = function(id){
+  if (window.adaCurrentRole !== 'admin') return;
   const r = _revenue.find(x=>x.id===id);
   if (!r) return;
   _editingRevenueId = id;
@@ -1338,6 +1437,7 @@ window.cancelRevenueEdit = function(){
 };
 async function onRevenueFormSubmit(e){
   e.preventDefault();
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot add revenue.', true); return; }
   const editing = _editingRevenueId;
   const btn = document.getElementById('revSubmitBtn');
   btn.disabled = true;
@@ -1362,6 +1462,7 @@ async function onRevenueFormSubmit(e){
   finally { btn.disabled = false; }
 }
 window.deleteRevenue = async function(id){
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete revenue.', true); return; }
   if (!confirm('Delete this revenue entry?')) return;
   try { await deleteDoc(doc(db,'ada_revenue',id)); showToast('Revenue deleted.'); loadRevenuePage(); }
   catch(err) { showToast('Error: '+err.message, true); }
@@ -1383,25 +1484,28 @@ async function loadLiabilityPage(){
     await ensureUsersLoaded();
     document.getElementById('liabCrew').innerHTML = crewOptionsHtml('');
     await renderBalanceGrid('liabilityBalanceGrid');
+    await renderAvailableBalanceGrid('availableBalanceGrid');
     const snap = await getDocs(collection(db,'ada_liability'));
     _liability = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if (!_liability.length) { wrap.innerHTML = `<div class="empty"><h3>No liability recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Description</th><th></th></tr></thead><tbody>
+    const canEditLiability = window.adaCurrentRole === 'admin';
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Description</th>${canEditLiability?'<th></th>':''}</tr></thead><tbody>
       ${_liability.map(l=>`<tr>
         <td>${formatDate(l.date)}</td>
         <td>${escHtml(l.crewName||crewName(l.crewId))}</td>
         <td><strong>${formatCurrency(l.amount)}</strong></td>
         <td style="font-size:.8rem;">${escHtml(l.description||'—')}</td>
-        <td style="display:flex;gap:.3rem;">
+        ${canEditLiability ? `<td style="display:flex;gap:.3rem;">
           <button class="mini-btn" onclick="editLiability('${l.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="mini-btn mini-btn-danger" onclick="deleteLiability('${l.id}')"><i class="fa-solid fa-trash"></i></button>
-        </td>
+        </td>` : ''}
       </tr>`).join('')}
     </tbody></table></div>`;
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading liability.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 let _editingLiabilityId = null;
 window.editLiability = function(id){
+  if (window.adaCurrentRole !== 'admin') return;
   const l = _liability.find(x=>x.id===id);
   if (!l) return;
   _editingLiabilityId = id;
@@ -1422,6 +1526,7 @@ window.cancelLiabilityEdit = function(){
 };
 async function onLiabilityFormSubmit(e){
   e.preventDefault();
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot record liability.', true); return; }
   const editing = _editingLiabilityId;
   const crewId = document.getElementById('liabCrew').value;
   const amount = Number(document.getElementById('liabAmount').value);
@@ -1443,6 +1548,7 @@ async function onLiabilityFormSubmit(e){
   finally { btn.disabled = false; }
 }
 window.deleteLiability = async function(id){
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete liability.', true); return; }
   if (!confirm('Delete this liability entry?')) return;
   try { await deleteDoc(doc(db,'ada_liability',id)); showToast('Deleted.'); loadLiabilityPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
@@ -1459,23 +1565,25 @@ async function loadPaymentsPage(){
     const snap = await getDocs(collection(db,'ada_payments'));
     _payments = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if (!_payments.length) { wrap.innerHTML = `<div class="empty"><h3>No payments recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Method</th><th>Notes</th><th></th></tr></thead><tbody>
+    const canEditPayments = window.adaCurrentRole === 'admin';
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Method</th><th>Notes</th>${canEditPayments?'<th></th>':''}</tr></thead><tbody>
       ${_payments.map(p=>`<tr>
         <td>${formatDate(p.date)}</td>
         <td>${escHtml(p.crewName||crewName(p.crewId))}</td>
         <td><strong>${formatCurrency(p.amount)}</strong></td>
         <td>${escHtml(p.method||'—')}</td>
         <td style="font-size:.8rem;">${escHtml(p.notes||'—')}</td>
-        <td style="display:flex;gap:.3rem;">
+        ${canEditPayments ? `<td style="display:flex;gap:.3rem;">
           <button class="mini-btn" onclick="editPayment('${p.id}')"><i class="fa-solid fa-pen"></i></button>
           <button class="mini-btn mini-btn-danger" onclick="deletePayment('${p.id}')"><i class="fa-solid fa-trash"></i></button>
-        </td>
+        </td>` : ''}
       </tr>`).join('')}
     </tbody></table></div>`;
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading payments.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 let _editingPaymentId = null;
 window.editPayment = function(id){
+  if (window.adaCurrentRole !== 'admin') return;
   const p = _payments.find(x=>x.id===id);
   if (!p) return;
   _editingPaymentId = id;
@@ -1497,6 +1605,7 @@ window.cancelPaymentEdit = function(){
 };
 async function onPaymentFormSubmit(e){
   e.preventDefault();
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot record payments.', true); return; }
   const editing = _editingPaymentId;
   const crewId = document.getElementById('payCrew').value;
   const amount = Number(document.getElementById('payAmount').value);
@@ -1519,6 +1628,7 @@ async function onPaymentFormSubmit(e){
   finally { btn.disabled = false; }
 }
 window.deletePayment = async function(id){
+  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete payments.', true); return; }
   if (!confirm('Delete this payment entry?')) return;
   try { await deleteDoc(doc(db,'ada_payments',id)); showToast('Deleted.'); loadPaymentsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
