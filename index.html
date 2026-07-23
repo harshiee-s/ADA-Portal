@@ -174,6 +174,54 @@ tr:hover td{background:rgba(10,22,40,.015);}
 .due.zero{color:var(--success);}
 
 
+.pill-dept-content{background:rgba(26,94,187,.12);color:#1A5EBB;}
+.pill-dept-video{background:rgba(193,53,132,.12);color:#C13584;}
+.pill-dept-asset{background:rgba(160,92,0,.12);color:#A05C00;}
+.pill-dept-finance{background:rgba(13,122,78,.12);color:#0D7A4E;}
+.pill-dept-location{background:rgba(192,57,43,.12);color:#C0392B;}
+.pill-dept-none{background:rgba(10,22,40,.06);color:var(--text-3);}
+select.dept-select-inline{padding:.28rem .5rem;font-size:.72rem;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface-2);font-weight:600;}
+.dept-checks{display:flex;flex-wrap:wrap;gap:.5rem;}
+.dept-check-item{display:flex;align-items:center;gap:.4rem;padding:.4rem .7rem;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface-2);font-size:.8rem;font-weight:600;cursor:pointer;transition:var(--t);user-select:none;}
+.dept-check-item:hover{border-color:var(--gold-border);}
+.dept-check-item input{cursor:pointer;}
+.dept-check-item.checked{background:var(--gold-soft);border-color:var(--gold-border);color:var(--warn);}
+.dept-checks-compact{gap:.3rem;}
+.dept-checks-compact .dept-check-item{padding:.2rem .5rem;font-size:.68rem;}
+
+.asset-thumb{width:42px;height:42px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer;display:block;transition:var(--t);}
+.asset-thumb:hover{transform:scale(1.08);box-shadow:var(--shadow-sm);}
+.asset-thumb-empty{width:42px;height:42px;border-radius:8px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.85rem;}
+.img-lightbox{position:fixed;inset:0;background:rgba(10,22,40,.85);z-index:9998;display:none;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out;}
+.img-lightbox.show{display:flex;}
+.img-lightbox img{max-width:90vw;max-height:85vh;border-radius:var(--r-md);box-shadow:var(--shadow-md);}
+
+.cal-nav-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-dow{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);text-align:center;padding-bottom:.3rem;}
+.cal-cell{min-height:64px;border-radius:var(--r-sm);border:1px solid var(--border-2);background:var(--surface-2);padding:.35rem .4rem;cursor:pointer;transition:var(--t);position:relative;display:flex;flex-direction:column;gap:.2rem;}
+.cal-cell:hover{border-color:var(--gold-border);background:var(--gold-soft);}
+.cal-cell.cal-empty{background:transparent;border:none;cursor:default;}
+.cal-cell.cal-empty:hover{background:transparent;}
+.cal-cell .cal-daynum{font-size:.78rem;font-weight:700;color:var(--text-2);}
+.cal-cell.cal-today .cal-daynum{color:var(--gold);}
+.cal-cell.cal-today{border-color:var(--gold);}
+.cal-cell.cal-selected{background:var(--primary);border-color:var(--primary);}
+.cal-cell.cal-selected .cal-daynum{color:#fff;}
+.cal-dots{display:flex;gap:3px;flex-wrap:wrap;}
+.cal-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);}
+.cal-cell.cal-selected .cal-dot{background:#fff;}
+.cal-count{font-size:.65rem;color:var(--text-3);}
+.cal-cell.cal-selected .cal-count{color:rgba(255,255,255,.7);}
+
+.task-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem .9rem;display:flex;flex-direction:column;gap:.4rem;}
+.task-card.done{opacity:.6;}
+.task-card .task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;flex-wrap:wrap;}
+.task-card .task-title{font-weight:700;font-size:.9rem;color:var(--primary);}
+.task-card.done .task-title{text-decoration:line-through;}
+.task-card .task-meta{font-size:.74rem;color:var(--text-3);display:flex;gap:.8rem;flex-wrap:wrap;margin-top:.1rem;}
+.task-card .task-desc{font-size:.8rem;color:var(--text-2);}
+
 .hamburger-btn{display:none;background:none;border:none;color:var(--primary);font-size:1.15rem;padding:.5rem .6rem;border-radius:var(--r-sm);flex-shrink:0;}
 .hamburger-btn:hover{background:rgba(10,22,40,.06);}
 .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(10,22,40,.55);z-index:40;}
@@ -236,6 +284,7 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="locations" id="navLocations"><i class="fa-solid fa-location-dot"></i><span>Locations</span></div>
       <div class="nav-item" data-page="clients" id="navClients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
       <div class="nav-item" data-page="assets" id="navAssets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
+      <div class="nav-item" data-page="tasks" id="navTasks"><i class="fa-solid fa-calendar-days"></i><span>Tasks &amp; Calendar</span></div>
       <div class="nav-item" data-page="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></div>
       <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
       <div class="nav-item" data-page="liability"><i class="fa-solid fa-hand-holding-dollar"></i><span>Crew Liability</span></div>
@@ -283,6 +332,10 @@ body.no-scroll{overflow:hidden;}
           <div class="field"><label>Email</label><input class="input" type="email" id="userLoginId" required placeholder="e.g. example@gmail.com"></div>
           <div class="field"><label>Password</label><input class="input" type="password" id="userPassword" minlength="6" required></div>
           <div class="field"><label>Role</label><select class="input" id="userRole"><option value="crew">Crew Member</option><option value="admin">Admin</option></select></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Department(s)</label>
+            <div class="dept-checks" id="userDepartmentChecks"></div>
+          </div>
           <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit" id="userSubmitBtn"><i class="fa-solid fa-user-plus"></i> Create Login</button></div>
         </form>
       </div>
@@ -343,12 +396,63 @@ body.no-scroll{overflow:hidden;}
           <div class="field"><label>Quantity</label><input class="input" type="number" id="assetQty" min="1" step="1" required></div>
           <div class="field"><label>Location</label><select class="input" id="assetLocation" required></select></div>
           <div class="field"><label>Notes (optional)</label><input class="input" id="assetNotes"></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Asset Image (optional)</label>
+            <label class="file-drop" id="assetFileDrop" for="assetFile"><i class="fa-solid fa-image"></i> Click to attach a photo of the asset (max 700 KB)</label>
+            <input type="file" id="assetFile" accept="image/*" style="display:none;">
+          </div>
           <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit"><i class="fa-solid fa-plus"></i> Save Asset</button></div>
         </form>
       </div>
       <div class="card panel">
         <div class="panel-head"><h2>Current Inventory</h2></div>
         <div id="assetsTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-tasks">
+      <div class="card panel">
+        <div class="panel-head">
+          <h2>Calendar</h2>
+          <div class="cal-nav-row">
+            <button class="mini-btn" type="button" onclick="calChangeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            <strong id="calMonthLabel" style="min-width:130px;text-align:center;font-family:var(--font-head);color:var(--primary);"></strong>
+            <button class="mini-btn" type="button" onclick="calChangeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            <button class="btn btn-secondary" type="button" onclick="calGoToday()">Today</button>
+            <button class="mini-btn" type="button" id="taskFilterDayBtn" onclick="clearDayFilter()" style="display:none;">Clear day filter <i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div id="calGridWrap" style="margin-top:.8rem;"></div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head"><h2>Create Task</h2><p>Assign a task to one or more departments (and optionally one specific person) for a chosen date. Example: Content assigns Video Editing to post on a date, while also assigning Location Manager and Asset Manager to handle their part of the same task.</p></div>
+        <form id="taskForm" class="form-grid">
+          <div class="field"><label>Date</label><input class="input" type="date" id="taskDate" required></div>
+          <div class="field"><label>Title</label><input class="input" id="taskTitle" required placeholder="e.g. Post video to YouTube"></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Assign To Department(s)</label>
+            <div class="dept-checks" id="taskDepartmentChecks"></div>
+          </div>
+          <div class="field"><label>Assign To Person (optional)</label><select class="input" id="taskAssignee"><option value="">Whole department(s)</option></select></div>
+          <div class="field" style="grid-column:1/-1;"><label>Description</label><textarea class="input" id="taskDescription" rows="2" placeholder="Details for whoever picks this up..."></textarea></div>
+          <div class="field" style="align-self:flex-end;">
+            <button class="btn btn-gold" type="submit" id="taskSubmitBtn"><i class="fa-solid fa-plus"></i> Create Task</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head">
+          <h2>Tasks</h2>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <select class="input" id="taskFilterDept" style="width:auto;" onchange="loadTasksPage()"><option value="">All departments</option></select>
+            <select class="input" id="taskFilterStatus" style="width:auto;" onchange="loadTasksPage()">
+              <option value="">All statuses</option><option value="pending">Pending</option><option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div id="tasksTableWrap"></div>
       </div>
     </section>
 
@@ -510,6 +614,7 @@ body.no-scroll{overflow:hidden;}
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="img-lightbox" id="imgLightbox" onclick="this.classList.remove('show')"><img id="imgLightboxImg" src="" alt="Asset image"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -574,6 +679,38 @@ window.__creatingAdmin = false;
 window.__adminLaunched = false;
 let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[];
 let _expensesVisible = [];
+let _tasks = [];
+
+// ─── DEPARTMENTS ───
+const DEPARTMENTS = ['Content','Video Editing','Asset Manager','Finance and Operations','Location Manager'];
+const DEPT_CLASS = {
+  'Content':'content', 'Video Editing':'video', 'Asset Manager':'asset',
+  'Finance and Operations':'finance', 'Location Manager':'location'
+};
+function deptClass(d){ return DEPT_CLASS[d] || 'none'; }
+function deptOptionsHtml(selected, includeBlank){
+  let out = includeBlank ? `<option value="">— No department —</option>` : '';
+  out += DEPARTMENTS.map(d=>`<option value="${d}" ${d===selected?'selected':''}>${escHtml(d)}</option>`).join('');
+  return out;
+}
+function deptBadge(d){
+  return d ? `<span class="pill pill-dept-${deptClass(d)}">${escHtml(d)}</span>` : `<span class="pill pill-dept-none">—</span>`;
+}
+// Normalizes a user's department assignment: older accounts stored a single
+// `department` string, newer ones store a `departments` array (a crew member
+// can belong to more than one department).
+function userDepts(u){
+  if (!u) return [];
+  if (Array.isArray(u.departments) && u.departments.length) return u.departments;
+  if (u.department) return [u.department];
+  return [];
+}
+function deptChecksHtml(idPrefix, selectedDepts, onChangeFn){
+  return DEPARTMENTS.map(d=>`
+    <label class="dept-check-item ${selectedDepts.includes(d)?'checked':''}">
+      <input type="checkbox" value="${escHtml(d)}" ${selectedDepts.includes(d)?'checked':''} onchange="${onChangeFn}"> ${escHtml(d)}
+    </label>`).join('');
+}
 
 const pageConfig = {
   dashboard:{t:'Dashboard', s:'Overview of crew finances and assets.'},
@@ -582,6 +719,7 @@ const pageConfig = {
   locations:{t:'Locations', s:'Where assets are stored or deployed.'},
   clients:{t:'Clients', s:'Tag expenses and revenue to a client.'},
   assets:{t:'Assets', s:'Track equipment quantity by location.'},
+  tasks:{t:'Tasks & Calendar', s:'Assign and track tasks across departments.'},
   expenses:{t:'Expenses', s:'Log spends with bills attached.'},
   revenue:{t:'Revenue', s:'Income from YouTube and Instagram.'},
   liability:{t:'Crew Liability', s:'Amounts owed to crew members.'},
@@ -751,6 +889,10 @@ function launchAdminApp(user, profile){
   document.getElementById('pnlTo').value = todayISO();
   document.getElementById('expFileDrop').addEventListener('click', ()=>document.getElementById('expFile').click());
   document.getElementById('expFile').addEventListener('change', onExpenseFileChosen);
+  document.getElementById('assetFileDrop').addEventListener('click', ()=>document.getElementById('assetFile').click());
+  document.getElementById('assetFile').addEventListener('change', onAssetFileChosen);
+  renderUserFormDeptChecks();
+  document.getElementById('taskDate').value = todayISO();
   wireForms();
   showAdminPage('dashboard');
 }
@@ -768,7 +910,7 @@ window.showAdminPage = function(name){
   document.getElementById('pageSubtitle').textContent = pageConfig[name].s;
   const loaders = {
     dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
-    locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, expenses: loadExpensesPage,
+    locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage,
     pnl: loadPnLPage
   };
@@ -782,6 +924,7 @@ function wireForms(){
   document.getElementById('locationForm').addEventListener('submit', onLocationFormSubmit);
   document.getElementById('clientForm').addEventListener('submit', onClientFormSubmit);
   document.getElementById('assetForm').addEventListener('submit', onAssetFormSubmit);
+  document.getElementById('taskForm').addEventListener('submit', onTaskFormSubmit);
   document.getElementById('expenseForm').addEventListener('submit', onExpenseFormSubmit);
   document.getElementById('revenueForm').addEventListener('submit', onRevenueFormSubmit);
   document.getElementById('liabilityForm').addEventListener('submit', onLiabilityFormSubmit);
@@ -850,14 +993,22 @@ async function loadDashboardPage(){
     `;
     await renderBalanceGrid('dashBalanceGrid');
 
-    // Alerts: pending expense approvals (admin only), crew with a balance due, assets low on stock
+    // Alerts: pending expense approvals (admin only), crew with a balance due, assets low on stock, tasks assigned to me
     const balances = await computeCrewBalances();
     const crewWithDue = balances.filter(b=>b.balance > 0);
     const lowStock = assets.filter(a=>Number(a.quantity||0) <= 1);
     const pendingExpenses = allExpenses.filter(x=>expenseStatus(x)==='pending');
+    const taskSnap = await getDocs(collection(db,'ada_tasks'));
+    const allTasks = taskSnap.docs.map(d=>d.data());
+    const myUid = window.adaCurrentUser?.uid;
+    const myDepts = userDepts(window.adaProfile);
+    const myPendingTasks = allTasks.filter(t => (t.status||'pending')==='pending' && (t.assignedToUid===myUid || (!t.assignedToUid && taskDepts(t).some(d=>myDepts.includes(d)))));
     const alertItems = [];
     if (window.adaCurrentRole === 'admin' && pendingExpenses.length) {
       alertItems.push(`<div class="alert-item" onclick="showAdminPage('expenses')"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingExpenses.length} expense${pendingExpenses.length>1?'s':''} awaiting your approval</div>`);
+    }
+    if (myPendingTasks.length) {
+      alertItems.push(`<div class="alert-item" onclick="showAdminPage('tasks')"><i class="fa-solid fa-list-check"></i> ${myPendingTasks.length} task${myPendingTasks.length>1?'s':''} assigned to you or your department</div>`);
     }
     if (crewWithDue.length) {
       alertItems.push(`<div class="alert-item" onclick="showAdminPage('liability')"><i class="fa-solid fa-triangle-exclamation"></i> ${crewWithDue.length} crew member${crewWithDue.length>1?'s':''} with a balance due</div>`);
@@ -936,11 +1087,14 @@ async function loadUsersPage(){
     const snap = await getDocs(collection(db,'ada_users'));
     _users = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     if (!_users.length) { wrap.innerHTML = `<div class="empty"><h3>No logins yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody>
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Action</th></tr></thead><tbody>
       ${_users.map(u=>`<tr>
         <td><strong>${escHtml(u.name)}</strong></td>
         <td><code>${escHtml(u.email)}</code></td>
         <td><span class="pill pill-${u.role}">${escHtml(u.role)}</span></td>
+        <td>${window.adaCurrentRole==='admin'
+          ? `<div class="dept-checks dept-checks-compact">${deptChecksHtml('row', userDepts(u), `onUserDeptCheckChange('${u.id}', this)`)}</div>`
+          : (userDepts(u).length ? userDepts(u).map(d=>deptBadge(d)).join(' ') : deptBadge(''))}</td>
         <td><span class="pill ${u.status==='inactive'?'pill-inactive':'pill-active'}">${u.status==='inactive'?'Inactive':'Active'}</span></td>
         <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
           <button class="mini-btn" onclick="resetUserPassword('${escHtml(u.email)}')"><i class="fa-solid fa-key"></i> Reset</button>
@@ -973,6 +1127,19 @@ window.toggleUserRole = async function(uid, newRole){
   } catch(err) { showToast('Error: '+err.message, true); }
 };
 
+window.onUserDeptCheckChange = async function(uid, cb){
+  if (window.adaCurrentRole !== 'admin') return;
+  cb.closest('.dept-check-item').classList.toggle('checked', cb.checked);
+  const group = cb.closest('.dept-checks');
+  const departments = Array.from(group.querySelectorAll('input:checked')).map(i=>i.value);
+  try {
+    await updateDoc(doc(db,'ada_users',uid), { departments });
+    showToast('Departments updated.');
+    _users = _users.map(u=>u.id===uid ? {...u, departments} : u);
+    if (window.adaProfile && window.adaProfile.uid === uid) window.adaProfile.departments = departments;
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
 window.toggleUserStatus = async function(uid, newStatus){
   try {
     await updateDoc(doc(db,'ada_users',uid), { status:newStatus });
@@ -981,22 +1148,33 @@ window.toggleUserStatus = async function(uid, newStatus){
   } catch(err) { showToast('Error: '+err.message, true); }
 };
 
+function renderUserFormDeptChecks(){
+  const wrap = document.getElementById('userDepartmentChecks');
+  if (!wrap) return;
+  wrap.innerHTML = deptChecksHtml('userDept', [], "this.closest('.dept-check-item').classList.toggle('checked', this.checked)");
+}
+function checkedUserFormDepartments(){
+  return Array.from(document.querySelectorAll('#userDepartmentChecks input:checked')).map(i=>i.value);
+}
+
 async function onUserFormSubmit(e){
   e.preventDefault();
   const name = document.getElementById('userName').value.trim();
   const email = normalizeEmail(document.getElementById('userLoginId').value);
   const password = document.getElementById('userPassword').value;
   const role = document.getElementById('userRole').value;
+  const departments = checkedUserFormDepartments();
   const btn = document.getElementById('userSubmitBtn');
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
   try {
     const cred = await createUserWithEmailAndPassword(secondaryAuth, email, password);
     await signOut(secondaryAuth);
     await setDoc(doc(db,'ada_users',cred.user.uid), {
-      name, email, role, status:'active',
+      name, email, role, departments, status:'active',
       createdAt: new Date().toISOString(), createdBy: window.adaCurrentUser?.uid || null
     });
     document.getElementById('userForm').reset();
+    renderUserFormDeptChecks();
     showToast(`Login created for ${name}.`);
     loadUsersPage();
   } catch(err) {
@@ -1122,8 +1300,9 @@ async function loadAssetsPage(){
 
     if (!_assets.length) { wrap.innerHTML = `<div class="empty"><h3>No assets recorded yet.</h3><p>Add your first asset above.</p></div>`; return; }
     const canEditAssets = window.adaCurrentRole === 'admin';
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th>${canEditAssets?'<th></th>':''}</tr></thead><tbody>
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Image</th><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th>${canEditAssets?'<th></th>':''}</tr></thead><tbody>
       ${_assets.sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'')).map(a=>`<tr>
+        <td>${a.imageBase64 ? `<img class="asset-thumb" src="${a.imageBase64}" onclick="viewAssetImage('${a.imageBase64}')" alt="${escHtml(a.itemName)}">` : `<div class="asset-thumb-empty"><i class="fa-solid fa-image"></i></div>`}</td>
         <td><strong>${escHtml(a.itemName)}</strong></td>
         <td>${a.quantity}</td>
         <td>${escHtml(a.locationName)}</td>
@@ -1165,6 +1344,29 @@ document.getElementById('assetLocation').addEventListener('change', async functi
   }
 });
 
+let _pendingAssetImage = null; // base64
+async function onAssetFileChosen(e){
+  const file = e.target.files[0];
+  const dropEl = document.getElementById('assetFileDrop');
+  if (!file) { _pendingAssetImage = null; return; }
+  const validTypes = ['image/jpeg','image/jpg','image/png','image/webp'];
+  if (!validTypes.includes(file.type)) { showToast('Only images are supported.', true); e.target.value=''; return; }
+  if (file.size > 700*1024) { showToast('Image must be under 700 KB. Try compressing the photo.', true); e.target.value=''; return; }
+  const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+  _pendingAssetImage = base64;
+  dropEl.classList.add('has-file');
+  dropEl.innerHTML = `<i class="fa-solid fa-check"></i> ${escHtml(file.name)} attached`;
+}
+window.viewAssetImage = function(src){
+  document.getElementById('imgLightboxImg').src = src;
+  document.getElementById('imgLightbox').classList.add('show');
+};
+function resetAssetFileDrop(){
+  _pendingAssetImage = null;
+  const dropEl = document.getElementById('assetFileDrop');
+  dropEl.classList.remove('has-file');
+  dropEl.innerHTML = '<i class="fa-solid fa-image"></i> Click to attach a photo of the asset (max 700 KB)';
+}
 async function onAssetFormSubmit(e){
   e.preventDefault();
   if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot add assets.', true); return; }
@@ -1178,17 +1380,19 @@ async function onAssetFormSubmit(e){
   try {
     const existing = _assets.find(a=>a.itemId===itemId && a.locationId===locationId);
     if (existing) {
-      await updateDoc(doc(db,'ada_assets',existing.id), {
-        quantity: Number(existing.quantity||0) + qty, notes: notes || existing.notes || '', updatedAt: new Date().toISOString()
-      });
+      const patch = { quantity: Number(existing.quantity||0) + qty, notes: notes || existing.notes || '', updatedAt: new Date().toISOString() };
+      if (_pendingAssetImage) patch.imageBase64 = _pendingAssetImage;
+      await updateDoc(doc(db,'ada_assets',existing.id), patch);
     } else {
       const id = 'asset_'+Date.now();
       await setDoc(doc(db,'ada_assets',id), {
         itemId, itemName: item?.name||'', locationId, locationName: loc?.name||'', quantity: qty, notes,
+        imageBase64: _pendingAssetImage || '',
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
       });
     }
     document.getElementById('assetForm').reset();
+    resetAssetFileDrop();
     showToast('Asset saved.');
     loadAssetsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
@@ -1209,6 +1413,225 @@ window.deleteAsset = async function(id){
   if (!confirm('Delete this asset record?')) return;
   try { await deleteDoc(doc(db,'ada_assets',id)); showToast('Asset deleted.'); loadAssetsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ═══════════════════ TASKS & CALENDAR ═══════════════════
+const calState = { current: new Date(), selectedDate: null };
+
+function myDepartments(){ return userDepts(window.adaProfile); }
+
+function usersInDepts(depts){
+  return _users.filter(u => userDepts(u).some(d=>depts.includes(d)) && u.status !== 'inactive');
+}
+
+// Normalizes a task's department assignment: older tasks stored a single
+// `department` string, newer ones store a `departments` array.
+function taskDepts(t){
+  if (Array.isArray(t.departments) && t.departments.length) return t.departments;
+  if (t.department) return [t.department];
+  return [];
+}
+
+function renderTaskDepartmentChecks(){
+  const wrap = document.getElementById('taskDepartmentChecks');
+  const mine = myDepartments();
+  wrap.innerHTML = deptChecksHtml('taskDept', mine, 'onTaskDepartmentChecksChange(this)');
+  onTaskDepartmentChange();
+}
+
+window.onTaskDepartmentChecksChange = function(cb){
+  cb.closest('.dept-check-item').classList.toggle('checked', cb.checked);
+  onTaskDepartmentChange();
+};
+
+function checkedTaskDepartments(){
+  return Array.from(document.querySelectorAll('#taskDepartmentChecks input:checked')).map(i=>i.value);
+}
+
+function onTaskDepartmentChange(){
+  const depts = checkedTaskDepartments();
+  const sel = document.getElementById('taskAssignee');
+  const prev = sel.value;
+  const people = usersInDepts(depts);
+  sel.innerHTML = `<option value="">Whole department(s)</option>` + people.map(u=>`<option value="${u.id}">${escHtml(u.name)} (${userDepts(u).map(escHtml).join(', ')})</option>`).join('');
+  if (people.some(p=>p.id===prev)) sel.value = prev;
+}
+
+async function ensureTasksLoaded(){
+  const snap = await getDocs(collection(db,'ada_tasks'));
+  _tasks = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+function canActOnTask(t){
+  const role = window.adaCurrentRole;
+  const uid = window.adaCurrentUser?.uid;
+  if (role === 'admin') return true;
+  if (t.assignedByUid === uid) return true;
+  if (t.assignedToUid && t.assignedToUid === uid) return true;
+  if (!t.assignedToUid && myDepartments().some(d=>taskDepts(t).includes(d))) return true;
+  return false;
+}
+
+function tasksOnDate(iso){
+  return _tasks.filter(t => t.date === iso);
+}
+
+function renderCalendar(){
+  const wrap = document.getElementById('calGridWrap');
+  const label = document.getElementById('calMonthLabel');
+  const year = calState.current.getFullYear();
+  const month = calState.current.getMonth();
+  label.textContent = calState.current.toLocaleDateString('en-IN',{month:'long', year:'numeric'});
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const todayIso = todayISO();
+  const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = `<div class="cal-grid">` + dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for (let i=0;i<firstDow;i++) html += `<div class="cal-cell cal-empty"></div>`;
+  for (let day=1; day<=daysInMonth; day++){
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayTasks = tasksOnDate(iso);
+    const isToday = iso === todayIso;
+    const isSelected = iso === calState.selectedDate;
+    html += `<div class="cal-cell ${isToday?'cal-today':''} ${isSelected?'cal-selected':''}" onclick="calSelectDate('${iso}')">
+      <span class="cal-daynum">${day}</span>
+      ${dayTasks.length ? `<div class="cal-dots">${dayTasks.slice(0,4).map(()=>'<span class="cal-dot"></span>').join('')}</div><span class="cal-count">${dayTasks.length} task${dayTasks.length>1?'s':''}</span>` : ''}
+    </div>`;
+  }
+  html += `</div>`;
+  wrap.innerHTML = html;
+}
+
+window.calChangeMonth = function(delta){
+  calState.current = new Date(calState.current.getFullYear(), calState.current.getMonth()+delta, 1);
+  renderCalendar();
+};
+window.calGoToday = function(){
+  calState.current = new Date();
+  calState.selectedDate = null;
+  document.getElementById('taskFilterDayBtn').style.display = 'none';
+  renderCalendar();
+  renderTasksTable();
+};
+window.calSelectDate = function(iso){
+  calState.selectedDate = iso;
+  document.getElementById('taskDate').value = iso;
+  document.getElementById('taskFilterDayBtn').style.display = '';
+  renderCalendar();
+  renderTasksTable();
+};
+window.clearDayFilter = function(){
+  calState.selectedDate = null;
+  document.getElementById('taskFilterDayBtn').style.display = 'none';
+  renderCalendar();
+  renderTasksTable();
+};
+
+function renderTasksTable(){
+  const wrap = document.getElementById('tasksTableWrap');
+  const deptFilter = document.getElementById('taskFilterDept').value;
+  const statusFilter = document.getElementById('taskFilterStatus').value;
+  let list = _tasks.slice();
+  if (calState.selectedDate) list = list.filter(t=>t.date===calState.selectedDate);
+  if (deptFilter) list = list.filter(t=>taskDepts(t).includes(deptFilter));
+  if (statusFilter) list = list.filter(t=>(t.status||'pending')===statusFilter);
+  list.sort((a,b)=> (a.date||'').localeCompare(b.date||'') || (a.createdAt||'').localeCompare(b.createdAt||''));
+  if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No tasks found.</h3><p>${calState.selectedDate ? 'Nothing scheduled for '+formatDate(calState.selectedDate)+'.' : 'Create a task above to assign work to one or more departments.'}</p></div>`; return; }
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(t=>{
+    const done = (t.status||'pending') === 'completed';
+    const depts = taskDepts(t);
+    const assignee = t.assignedToUid ? (crewName(t.assignedToUid) || 'Unassigned person') : `Whole ${depts.join(' + ')} team${depts.length>1?'s':''}`;
+    const canAct = canActOnTask(t);
+    return `<div class="task-card ${done?'done':''}">
+      <div class="task-top">
+        <div>
+          <div class="task-title">${escHtml(t.title)}</div>
+          <div class="task-meta">
+            <span><i class="fa-solid fa-calendar-day"></i> ${formatDate(t.date)}</span>
+            ${depts.map(d=>deptBadge(d)).join('')}
+            <span><i class="fa-solid fa-user"></i> ${assignee}</span>
+            <span><i class="fa-solid fa-paper-plane"></i> From ${escHtml(t.assignedByName||'—')}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          ${canAct ? `<button class="mini-btn" onclick="toggleTaskStatus('${t.id}')"><i class="fa-solid ${done?'fa-rotate-left':'fa-check'}"></i> ${done?'Reopen':'Mark Complete'}</button>` : ''}
+          ${(window.adaCurrentRole==='admin' || t.assignedByUid===window.adaCurrentUser?.uid) ? `<button class="mini-btn mini-btn-danger" onclick="deleteTask('${t.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+        </div>
+      </div>
+      ${t.description ? `<div class="task-desc">${escHtml(t.description)}</div>` : ''}
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+async function loadTasksPage(){
+  await ensureUsersLoaded();
+  await ensureTasksLoaded();
+  renderTaskDepartmentChecks();
+  document.getElementById('taskFilterDept').innerHTML = `<option value="">All departments</option>` + deptOptionsHtml('', false);
+  if (!document.getElementById('taskDate').value) document.getElementById('taskDate').value = calState.selectedDate || todayISO();
+  renderCalendar();
+  renderTasksTable();
+}
+
+async function onTaskFormSubmit(e){
+  e.preventDefault();
+  const date = document.getElementById('taskDate').value;
+  const title = document.getElementById('taskTitle').value.trim();
+  const departments = checkedTaskDepartments();
+  const assignedToUid = document.getElementById('taskAssignee').value;
+  const description = document.getElementById('taskDescription').value.trim();
+  const btn = document.getElementById('taskSubmitBtn');
+  if (!date || !title || !departments.length) { showToast('Date, title, and at least one department are required.', true); return; }
+  const assignee = _users.find(u=>u.id===assignedToUid);
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating...';
+  try {
+    const id = 'task_'+Date.now();
+    await setDoc(doc(db,'ada_tasks',id), {
+      title, description, date, departments,
+      assignedToUid: assignedToUid || '', assignedToName: assignee?.name || '',
+      assignedByUid: window.adaCurrentUser?.uid || '', assignedByName: window.adaProfile?.name || window.adaProfile?.email || 'Someone',
+      status: 'pending', createdAt: new Date().toISOString()
+    });
+    document.getElementById('taskForm').reset();
+    document.getElementById('taskDate').value = date;
+    renderTaskDepartmentChecks();
+    showToast('Task created.');
+    calState.selectedDate = date;
+    if (calState.current.getFullYear() !== Number(date.slice(0,4)) || calState.current.getMonth() !== Number(date.slice(5,7))-1) {
+      calState.current = new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1);
+    }
+    document.getElementById('taskFilterDayBtn').style.display = '';
+    await loadTasksPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Task'; }
+}
+
+window.toggleTaskStatus = async function(id){
+  const t = _tasks.find(x=>x.id===id);
+  if (!t || !canActOnTask(t)) { showToast('You are not assigned to this task.', true); return; }
+  const newStatus = (t.status||'pending') === 'completed' ? 'pending' : 'completed';
+  try {
+    await updateDoc(doc(db,'ada_tasks',id), { status:newStatus, completedAt: newStatus==='completed' ? new Date().toISOString() : '' });
+    showToast(newStatus==='completed' ? 'Task marked complete.' : 'Task reopened.');
+    await ensureTasksLoaded();
+    renderCalendar();
+    renderTasksTable();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+
+window.deleteTask = async function(id){
+  const t = _tasks.find(x=>x.id===id);
+  if (!t) return;
+  if (window.adaCurrentRole !== 'admin' && t.assignedByUid !== window.adaCurrentUser?.uid) { showToast('Only the creator or an admin can delete this task.', true); return; }
+  if (!confirm('Delete this task?')) return;
+  try {
+    await deleteDoc(doc(db,'ada_tasks',id));
+    showToast('Task deleted.');
+    await ensureTasksLoaded();
+    renderCalendar();
+    renderTasksTable();
+  } catch(err) { showToast('Error: '+err.message, true); }
 };
 
 // ═══════════════════ EXPENSES ═══════════════════
