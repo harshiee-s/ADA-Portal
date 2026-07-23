@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="icon" type="image/png" href="logo.png" />
-<link rel="shortcut icon" type="image/png" href="logo.png" />
-<link rel="apple-touch-icon" href="logo.png" />
 <title>AAA Portal | Crew Operations</title>
 <link rel="icon" type="image/png" href="logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -213,6 +210,7 @@ select.dept-select-inline{padding:.28rem .5rem;font-size:.72rem;border-radius:va
 .cal-cell.cal-selected .cal-daynum{color:#fff;}
 .cal-dots{display:flex;gap:3px;flex-wrap:wrap;}
 .cal-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);}
+.cal-dot.cal-dot-shoot{background:#C0392B;}
 .cal-cell.cal-selected .cal-dot{background:#fff;}
 .cal-count{font-size:.65rem;color:var(--text-3);}
 .cal-cell.cal-selected .cal-count{color:rgba(255,255,255,.7);}
@@ -408,7 +406,10 @@ body.no-scroll{overflow:hidden;}
         </form>
       </div>
       <div class="card panel">
-        <div class="panel-head"><h2>Current Inventory</h2></div>
+        <div class="panel-head">
+          <h2>Current Inventory</h2>
+          <input class="input" id="assetSearchInput" style="width:auto;min-width:220px;" placeholder="Search item, location, or notes…" oninput="renderAssetsTable()">
+        </div>
         <div id="assetsTableWrap"></div>
       </div>
     </section>
@@ -426,6 +427,17 @@ body.no-scroll{overflow:hidden;}
           </div>
         </div>
         <div id="calGridWrap" style="margin-top:.8rem;"></div>
+      </div>
+
+      <div class="card panel" id="scheduleShootCard" style="display:none;">
+        <div class="panel-head"><h2><i class="fa-solid fa-clapperboard"></i> Schedule Shoot</h2><p>Location Manager only — pick a date and location for a shoot. It shows up on the calendar with a distinct marker for the whole team.</p></div>
+        <form id="shootForm" class="form-grid">
+          <div class="field"><label>Shoot Date</label><input class="input" type="date" id="shootDate" required></div>
+          <div class="field"><label>Shoot Title</label><input class="input" id="shootTitle" required placeholder="e.g. Product shoot — Client X"></div>
+          <div class="field"><label>Location</label><select class="input" id="shootLocation" required></select></div>
+          <div class="field" style="grid-column:1/-1;"><label>Notes (optional)</label><input class="input" id="shootNotes"></div>
+          <div class="field" style="align-self:flex-end;"><button class="btn btn-gold" type="submit" id="shootSubmitBtn"><i class="fa-solid fa-clapperboard"></i> Schedule Shoot</button></div>
+        </form>
       </div>
 
       <div class="card panel">
@@ -534,7 +546,7 @@ body.no-scroll{overflow:hidden;}
         <div class="balance-grid" id="liabilityBalanceGrid" style="margin-top:.8rem;"></div>
       </div>
       <div class="card">
-        <div class="panel-head"><h2>Available Balance</h2><p>Total liability recorded minus total expenses recorded against that crew member.</p></div>
+        <div class="panel-head"><h2>Available Balance</h2><p>Total liability recorded minus expenses claimed and payments already made to that crew member.</p></div>
         <div class="balance-grid" id="availableBalanceGrid" style="margin-top:.8rem;"></div>
       </div>
       <div class="card panel" id="addLiabilityCard">
@@ -551,7 +563,10 @@ body.no-scroll{overflow:hidden;}
         </form>
       </div>
       <div class="card panel">
-        <div class="panel-head"><h2>Liability History</h2></div>
+        <div class="panel-head">
+          <h2>Liability History</h2>
+          <button class="btn btn-secondary" onclick="exportLiabilityExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+        </div>
         <div id="liabilityTableWrap"></div>
       </div>
     </section>
@@ -576,7 +591,10 @@ body.no-scroll{overflow:hidden;}
         </form>
       </div>
       <div class="card panel">
-        <div class="panel-head"><h2>Payment History</h2></div>
+        <div class="panel-head">
+          <h2>Payment History</h2>
+          <button class="btn btn-secondary" onclick="exportPaymentsExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+        </div>
         <div id="paymentsTableWrap"></div>
       </div>
     </section>
@@ -713,6 +731,38 @@ function deptChecksHtml(idPrefix, selectedDepts, onChangeFn){
     <label class="dept-check-item ${selectedDepts.includes(d)?'checked':''}">
       <input type="checkbox" value="${escHtml(d)}" ${selectedDepts.includes(d)?'checked':''} onchange="${onChangeFn}"> ${escHtml(d)}
     </label>`).join('');
+}
+
+// ─── PERMISSIONS (role + department based) ───
+// Admin              : full access everywhere.
+// Finance and Operations : full access everywhere EXCEPT the Users section.
+// Asset Manager      : full add / edit / delete access to the Assets section only.
+// Location Manager   : full add / edit / delete access to the Locations section,
+//                       plus the ability to schedule shoots on the calendar.
+// Everyone else (Content, Video Editing, or no department) keeps the existing
+// crew view-only behaviour.
+function roleIsAdmin(){ return window.adaCurrentRole === 'admin'; }
+function myDeptList(){ return userDepts(window.adaProfile); }
+function inDept(d){ return myDeptList().includes(d); }
+function isFinanceOps(){ return inDept('Finance and Operations'); }
+function isAssetManager(){ return inDept('Asset Manager'); }
+function isLocationManager(){ return inDept('Location Manager'); }
+// Can the current user add/edit/delete within a given section?
+function canManage(section){
+  if (roleIsAdmin()) return true;
+  if (section === 'users') return false; // Users is always admin-only.
+  if (isFinanceOps()) return true;
+  if (section === 'assets') return isAssetManager();
+  if (section === 'locations') return isLocationManager();
+  return false;
+}
+// Can the current user open a given restricted nav page at all?
+function canViewPage(section){
+  if (roleIsAdmin()) return true;
+  if (section === 'users') return false;
+  if (isFinanceOps()) return true;
+  if (section === 'locations') return isLocationManager();
+  return false;
 }
 
 const pageConfig = {
@@ -859,18 +909,20 @@ function launchAdminApp(user, profile){
   const createLoginCard = document.getElementById('createLoginCard');
   if (createLoginCard) createLoginCard.style.display = isAdmin ? '' : 'none';
 
-  // Crew members only get: Dashboard, Expenses (record own), and view-only
-  // access to Assets / Revenue / Crew Liability / Crew Payments. Everything
-  // else (Users, Items, Locations, Clients) is admin-only.
-  ['navUsers','navItems','navLocations','navClients','navPnl'].forEach(id=>{
-    const el = document.getElementById(id);
-    if (el) el.style.display = isAdmin ? '' : 'none';
-  });
-  // Crew can view Assets / Revenue / Liability / Payments history but cannot add/edit them.
-  ['addAssetCard','addRevenueCard','addLiabilityCard','addPaymentCard'].forEach(id=>{
-    const el = document.getElementById(id);
-    if (el) el.style.display = isAdmin ? '' : 'none';
-  });
+  // Crew members by default only get: Dashboard, Expenses (record own), and
+  // view-only access to Assets / Revenue / Crew Liability / Crew Payments.
+  // Department-based overrides (Asset Manager, Location Manager, Finance and
+  // Operations) grant extra access — see canViewPage()/canManage() above.
+  document.getElementById('navUsers').style.display = isAdmin ? '' : 'none';
+  document.getElementById('navItems').style.display = canViewPage('items') ? '' : 'none';
+  document.getElementById('navLocations').style.display = canViewPage('locations') ? '' : 'none';
+  document.getElementById('navClients').style.display = canViewPage('clients') ? '' : 'none';
+  document.getElementById('navPnl').style.display = canViewPage('pnl') ? '' : 'none';
+  document.getElementById('addAssetCard').style.display = canManage('assets') ? '' : 'none';
+  document.getElementById('addRevenueCard').style.display = canManage('revenue') ? '' : 'none';
+  document.getElementById('addLiabilityCard').style.display = canManage('liability') ? '' : 'none';
+  document.getElementById('addPaymentCard').style.display = canManage('payments') ? '' : 'none';
+  document.getElementById('scheduleShootCard').style.display = (isAdmin || isLocationManager()) ? '' : 'none';
 
   if (window.__adminLaunched) return;
   window.__adminLaunched = true;
@@ -896,14 +948,15 @@ function launchAdminApp(user, profile){
   document.getElementById('assetFile').addEventListener('change', onAssetFileChosen);
   renderUserFormDeptChecks();
   document.getElementById('taskDate').value = todayISO();
+  document.getElementById('shootDate').value = todayISO();
   wireForms();
   showAdminPage('dashboard');
 }
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  const adminOnlyPages = ['users','items','locations','clients','pnl'];
-  if (adminOnlyPages.includes(name) && window.adaCurrentRole !== 'admin') name = 'dashboard';
+  const restrictedPages = ['users','items','locations','clients','pnl'];
+  if (restrictedPages.includes(name) && !canViewPage(name)) name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-item[data-page]').forEach(b=>b.classList.remove('active'));
@@ -928,6 +981,7 @@ function wireForms(){
   document.getElementById('clientForm').addEventListener('submit', onClientFormSubmit);
   document.getElementById('assetForm').addEventListener('submit', onAssetFormSubmit);
   document.getElementById('taskForm').addEventListener('submit', onTaskFormSubmit);
+  document.getElementById('shootForm').addEventListener('submit', onShootFormSubmit);
   document.getElementById('expenseForm').addEventListener('submit', onExpenseFormSubmit);
   document.getElementById('revenueForm').addEventListener('submit', onRevenueFormSubmit);
   document.getElementById('liabilityForm').addEventListener('submit', onLiabilityFormSubmit);
@@ -963,6 +1017,10 @@ async function ensureClientsLoaded(){
   const snap = await getDocs(collection(db,'ada_clients'));
   _clients = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 }
+async function ensureLocationsLoaded(){
+  const snap = await getDocs(collection(db,'ada_locations'));
+  _locations = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+}
 
 // ═══════════════════ DASHBOARD ═══════════════════
 async function loadDashboardPage(){
@@ -970,8 +1028,8 @@ async function loadDashboardPage(){
   const alertsEl = document.getElementById('dashAlerts');
   wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
-    const [revSnap, expSnap, assetSnap, liabSnap] = await Promise.all([
-      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_liability'))
+    const [revSnap, expSnap, assetSnap, liabSnap, paySnap] = await Promise.all([
+      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_payments'))
     ]);
     await ensureUsersLoaded();
     const revenue = revSnap.docs.map(d=>d.data());
@@ -979,11 +1037,15 @@ async function loadDashboardPage(){
     const expenses = allExpenses.filter(isApprovedExpense);
     const assets = assetSnap.docs.map(d=>d.data());
     const liability = liabSnap.docs.map(d=>d.data());
+    const payments = paySnap.docs.map(d=>d.data());
     const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
     const totalExp = expenses.reduce((s,r)=>s+Number(r.amount||0),0);
     const totalLiab = liability.reduce((s,l)=>s+Number(l.amount||0),0);
+    const totalPayments = payments.reduce((s,p)=>s+Number(p.amount||0),0);
     const net = totalRev - totalExp;
-    const teamAvailable = totalLiab - totalExp;
+    // Available Balance (Team) = Crew Liability + Revenue - Crew Payments.
+    // Every payment made to a crew member reduces this balance immediately.
+    const teamAvailable = totalLiab + totalRev - totalPayments;
     const totalAssetQty = assets.reduce((s,a)=>s+Number(a.quantity||0),0);
     const crewCount = _users.filter(u=>u.role==='crew' && u.status!=='inactive').length;
     wrap.innerHTML = `
@@ -1007,7 +1069,7 @@ async function loadDashboardPage(){
     const myDepts = userDepts(window.adaProfile);
     const myPendingTasks = allTasks.filter(t => (t.status||'pending')==='pending' && (t.assignedToUid===myUid || (!t.assignedToUid && taskDepts(t).some(d=>myDepts.includes(d)))));
     const alertItems = [];
-    if (window.adaCurrentRole === 'admin' && pendingExpenses.length) {
+    if (canManage('expenses') && pendingExpenses.length) {
       alertItems.push(`<div class="alert-item" onclick="showAdminPage('expenses')"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingExpenses.length} expense${pendingExpenses.length>1?'s':''} awaiting your approval</div>`);
     }
     if (myPendingTasks.length) {
@@ -1057,14 +1119,18 @@ async function renderBalanceGrid(elId){
 
 async function computeAvailableBalances(){
   await ensureUsersLoaded();
-  const [liabSnap, expSnap] = await Promise.all([getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_expenses'))]);
+  const [liabSnap, expSnap, paySnap] = await Promise.all([getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_payments'))]);
   const liab = liabSnap.docs.map(d=>d.data());
   const exp = expSnap.docs.map(d=>d.data()).filter(isApprovedExpense);
+  const pay = paySnap.docs.map(d=>d.data());
   const crew = _users.filter(u=>u.role==='crew');
   return crew.map(c=>{
     const totalLiab = liab.filter(l=>l.crewId===c.id).reduce((s,l)=>s+Number(l.amount||0),0);
     const totalExp = exp.filter(x=>x.crewId===c.id).reduce((s,x)=>s+Number(x.amount||0),0);
-    return { crewId:c.id, name:c.name, totalLiab, totalExp, available: totalLiab-totalExp };
+    const totalPaid = pay.filter(p=>p.crewId===c.id).reduce((s,p)=>s+Number(p.amount||0),0);
+    // Available = Liability - Expenses claimed - Payments already made.
+    // A payment to this crew member reduces their available balance right away.
+    return { crewId:c.id, name:c.name, totalLiab, totalExp, totalPaid, available: totalLiab-totalExp-totalPaid };
   });
 }
 
@@ -1077,6 +1143,7 @@ async function renderAvailableBalanceGrid(elId){
       <div class="name">${escHtml(b.name)}</div>
       <div class="row"><span>Liability</span><strong>${formatCurrency(b.totalLiab)}</strong></div>
       <div class="row"><span>Expenses</span><strong>${formatCurrency(b.totalExp)}</strong></div>
+      <div class="row"><span>Payments</span><strong>${formatCurrency(b.totalPaid)}</strong></div>
       <div class="due ${b.available>=0?'zero':'pos'}">${formatCurrency(b.available)} available</div>
     </div>
   `).join('');
@@ -1301,27 +1368,43 @@ async function loadAssetsPage(){
     const locSel = document.getElementById('assetLocation');
     locSel.innerHTML = _locations.map(l=>`<option value="${l.id}">${escHtml(l.name)}</option>`).join('') + `<option value="__new__">+ Add new location…</option>`;
 
-    if (!_assets.length) { wrap.innerHTML = `<div class="empty"><h3>No assets recorded yet.</h3><p>Add your first asset above.</p></div>`; return; }
-    const canEditAssets = window.adaCurrentRole === 'admin';
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Image</th><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th>${canEditAssets?'<th></th>':''}</tr></thead><tbody>
-      ${_assets.sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||'')).map(a=>`<tr>
-        <td>${a.imageBase64 ? `<img class="asset-thumb" src="${a.imageBase64}" onclick="viewAssetImage('${a.imageBase64}')" alt="${escHtml(a.itemName)}">` : `<div class="asset-thumb-empty"><i class="fa-solid fa-image"></i></div>`}</td>
-        <td><strong>${escHtml(a.itemName)}</strong></td>
-        <td>${a.quantity}</td>
-        <td>${escHtml(a.locationName)}</td>
-        <td style="font-size:.78rem;">${escHtml(a.notes||'—')}</td>
-        <td style="font-size:.76rem;">${a.updatedAt?formatDate(a.updatedAt.slice(0,10)):'—'}</td>
-        ${canEditAssets ? `<td style="display:flex;gap:.3rem;">
-          <button class="mini-btn" onclick="adjustAssetQty('${a.id}')"><i class="fa-solid fa-pen"></i></button>
-          <button class="mini-btn mini-btn-danger" onclick="deleteAsset('${a.id}')"><i class="fa-solid fa-trash"></i></button>
-        </td>` : ''}
-      </tr>`).join('')}
-    </tbody></table></div>`;
+    renderAssetsTable();
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading assets.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 
+function renderAssetsTable(){
+  const wrap = document.getElementById('assetsTableWrap');
+  if (!_assets.length) { wrap.innerHTML = `<div class="empty"><h3>No assets recorded yet.</h3><p>Add your first asset above.</p></div>`; return; }
+  const canEditAssets = canManage('assets');
+  const q = (document.getElementById('assetSearchInput')?.value || '').trim().toLowerCase();
+  let list = _assets.slice();
+  if (q) {
+    list = list.filter(a =>
+      (a.itemName||'').toLowerCase().includes(q) ||
+      (a.locationName||'').toLowerCase().includes(q) ||
+      (a.notes||'').toLowerCase().includes(q)
+    );
+  }
+  list.sort((a,b)=>(a.itemName||'').localeCompare(b.itemName||''));
+  if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No assets match your search.</h3></div>`; return; }
+  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Image</th><th>Item</th><th>Quantity</th><th>Location</th><th>Notes</th><th>Updated</th>${canEditAssets?'<th></th>':''}</tr></thead><tbody>
+    ${list.map(a=>`<tr>
+      <td>${a.imageBase64 ? `<img class="asset-thumb" src="${a.imageBase64}" onclick="viewAssetImage('${a.imageBase64}')" alt="${escHtml(a.itemName)}">` : `<div class="asset-thumb-empty"><i class="fa-solid fa-image"></i></div>`}</td>
+      <td><strong>${escHtml(a.itemName)}</strong></td>
+      <td>${a.quantity}</td>
+      <td>${escHtml(a.locationName)}</td>
+      <td style="font-size:.78rem;">${escHtml(a.notes||'—')}</td>
+      <td style="font-size:.76rem;">${a.updatedAt?formatDate(a.updatedAt.slice(0,10)):'—'}</td>
+      ${canEditAssets ? `<td style="display:flex;gap:.3rem;">
+        <button class="mini-btn" onclick="adjustAssetQty('${a.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="mini-btn mini-btn-danger" onclick="deleteAsset('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+      </td>` : ''}
+    </tr>`).join('')}
+  </tbody></table></div>`;
+}
+
 document.getElementById('assetItem').addEventListener('change', async function(){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('assets')) return;
   if (this.value === '__new__') {
     const name = prompt('New item name:');
     if (name && name.trim()) {
@@ -1334,7 +1417,7 @@ document.getElementById('assetItem').addEventListener('change', async function()
   }
 });
 document.getElementById('assetLocation').addEventListener('change', async function(){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('assets')) return;
   if (this.value === '__new__') {
     const name = prompt('New location name:');
     if (name && name.trim()) {
@@ -1372,7 +1455,7 @@ function resetAssetFileDrop(){
 }
 async function onAssetFormSubmit(e){
   e.preventDefault();
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot add assets.', true); return; }
+  if (!canManage('assets')) { showToast('View-only access — you cannot add assets.', true); return; }
   const itemId = document.getElementById('assetItem').value;
   const qty = Number(document.getElementById('assetQty').value);
   const locationId = document.getElementById('assetLocation').value;
@@ -1401,7 +1484,7 @@ async function onAssetFormSubmit(e){
   } catch(err) { showToast('Error: '+err.message, true); }
 }
 window.adjustAssetQty = async function(id){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('assets')) return;
   const a = _assets.find(x=>x.id===id);
   if (!a) return;
   const val = prompt(`Set quantity for ${a.itemName} at ${a.locationName}:`, a.quantity);
@@ -1412,7 +1495,7 @@ window.adjustAssetQty = async function(id){
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.deleteAsset = async function(id){
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete assets.', true); return; }
+  if (!canManage('assets')) { showToast('View-only access — you cannot delete assets.', true); return; }
   if (!confirm('Delete this asset record?')) return;
   try { await deleteDoc(doc(db,'ada_assets',id)); showToast('Asset deleted.'); loadAssetsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
@@ -1498,7 +1581,7 @@ function renderCalendar(){
     const isSelected = iso === calState.selectedDate;
     html += `<div class="cal-cell ${isToday?'cal-today':''} ${isSelected?'cal-selected':''}" onclick="calSelectDate('${iso}')">
       <span class="cal-daynum">${day}</span>
-      ${dayTasks.length ? `<div class="cal-dots">${dayTasks.slice(0,4).map(()=>'<span class="cal-dot"></span>').join('')}</div><span class="cal-count">${dayTasks.length} task${dayTasks.length>1?'s':''}</span>` : ''}
+      ${dayTasks.length ? `<div class="cal-dots">${dayTasks.slice(0,4).map(t=>`<span class="cal-dot ${t.isShoot?'cal-dot-shoot':''}"></span>`).join('')}</div><span class="cal-count">${dayTasks.length} task${dayTasks.length>1?'s':''}${dayTasks.some(t=>t.isShoot)?' <i class="fa-solid fa-clapperboard" title="Shoot scheduled"></i>':''}</span>` : ''}
     </div>`;
   }
   html += `</div>`;
@@ -1551,6 +1634,7 @@ function renderTasksTable(){
           <div class="task-title">${escHtml(t.title)}</div>
           <div class="task-meta">
             <span><i class="fa-solid fa-calendar-day"></i> ${formatDate(t.date)}</span>
+            ${t.isShoot ? `<span class="pill pill-dept-location"><i class="fa-solid fa-clapperboard"></i> Shoot${t.locationName ? ' @ '+escHtml(t.locationName) : ''}</span>` : ''}
             ${depts.map(d=>deptBadge(d)).join('')}
             <span><i class="fa-solid fa-user"></i> ${assignee}</span>
             <span><i class="fa-solid fa-paper-plane"></i> From ${escHtml(t.assignedByName||'—')}</span>
@@ -1572,6 +1656,14 @@ async function loadTasksPage(){
   renderTaskDepartmentChecks();
   document.getElementById('taskFilterDept').innerHTML = `<option value="">All departments</option>` + deptOptionsHtml('', false);
   if (!document.getElementById('taskDate').value) document.getElementById('taskDate').value = calState.selectedDate || todayISO();
+  if (roleIsAdmin() || isLocationManager()) {
+    await ensureLocationsLoaded();
+    const shootLocSel = document.getElementById('shootLocation');
+    const prevShootLoc = shootLocSel.value;
+    shootLocSel.innerHTML = _locations.map(l=>`<option value="${l.id}">${escHtml(l.name)}</option>`).join('');
+    if (prevShootLoc) shootLocSel.value = prevShootLoc;
+    if (!document.getElementById('shootDate').value) document.getElementById('shootDate').value = calState.selectedDate || todayISO();
+  }
   renderCalendar();
   renderTasksTable();
 }
@@ -1607,6 +1699,42 @@ async function onTaskFormSubmit(e){
     await loadTasksPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Task'; }
+}
+
+// Schedule Shoot — Location Manager (and Admin) only. Stored as a task with
+// isShoot:true so it appears on the shared calendar with a distinct marker.
+async function onShootFormSubmit(e){
+  e.preventDefault();
+  if (!(roleIsAdmin() || isLocationManager())) { showToast('Only Location Manager can schedule shoots.', true); return; }
+  const date = document.getElementById('shootDate').value;
+  const title = document.getElementById('shootTitle').value.trim();
+  const locationId = document.getElementById('shootLocation').value;
+  const notes = document.getElementById('shootNotes').value.trim();
+  const btn = document.getElementById('shootSubmitBtn');
+  if (!date || !title || !locationId) { showToast('Date, title, and location are required.', true); return; }
+  const loc = _locations.find(l=>l.id===locationId);
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scheduling...';
+  try {
+    const id = 'task_'+Date.now();
+    await setDoc(doc(db,'ada_tasks',id), {
+      title: 'Shoot: ' + title, description: notes, date,
+      departments: ['Location Manager'], isShoot: true,
+      locationId, locationName: loc?.name || '',
+      assignedToUid: '', assignedToName: '',
+      assignedByUid: window.adaCurrentUser?.uid || '', assignedByName: window.adaProfile?.name || window.adaProfile?.email || 'Someone',
+      status: 'pending', createdAt: new Date().toISOString()
+    });
+    document.getElementById('shootForm').reset();
+    document.getElementById('shootDate').value = date;
+    showToast('Shoot scheduled.');
+    calState.selectedDate = date;
+    if (calState.current.getFullYear() !== Number(date.slice(0,4)) || calState.current.getMonth() !== Number(date.slice(5,7))-1) {
+      calState.current = new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1);
+    }
+    document.getElementById('taskFilterDayBtn').style.display = '';
+    await loadTasksPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-clapperboard"></i> Schedule Shoot'; }
 }
 
 window.toggleTaskStatus = async function(id){
@@ -1659,7 +1787,7 @@ async function loadExpensesPage(){
   try {
     await ensureUsersLoaded();
     await ensureClientsLoaded();
-    const isAdminNow = window.adaCurrentRole === 'admin';
+    const isAdminNow = canManage('expenses');
     const currentUid = window.adaCurrentUser?.uid || null;
     const crewSel = document.getElementById('expCrew');
     const filterSel = document.getElementById('expFilterCrew');
@@ -1743,7 +1871,7 @@ async function loadExpensesPage(){
 window.editExpense = function(id){
   const x = _expenses.find(e=>e.id===id);
   if (!x) return;
-  const isAdminNow = window.adaCurrentRole === 'admin';
+  const isAdminNow = canManage('expenses');
   if (!isAdminNow) {
     if (x.crewId !== window.adaCurrentUser?.uid) return;
     if (expenseStatus(x) === 'approved') { showToast("This expense is already approved and can't be edited.", true); return; }
@@ -1784,7 +1912,7 @@ async function onExpenseFormSubmit(e){
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
   const date = document.getElementById('expDate').value;
   const amount = Number(document.getElementById('expAmount').value);
-  const isAdminNow = window.adaCurrentRole === 'admin';
+  const isAdminNow = canManage('expenses');
   // Crew can only ever record expenses under their own name, even if the
   // (disabled) field were tampered with client-side.
   const crewId = isAdminNow ? document.getElementById('expCrew').value : (window.adaCurrentUser?.uid || '');
@@ -1829,7 +1957,7 @@ window.viewBill = function(id){
 };
 window.deleteExpense = async function(id){
   const x = _expenses.find(e=>e.id===id);
-  if (x && window.adaCurrentRole !== 'admin') {
+  if (x && !canManage('expenses')) {
     if (x.crewId !== window.adaCurrentUser?.uid) { showToast('You can only delete your own expenses.', true); return; }
     if (expenseStatus(x) === 'approved') { showToast("This expense is already approved and can't be deleted.", true); return; }
   }
@@ -1839,7 +1967,7 @@ window.deleteExpense = async function(id){
 };
 
 window.setExpenseStatus = async function(id, newStatus){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('expenses')) return;
   try {
     await updateDoc(doc(db,'ada_expenses',id), { status:newStatus, reviewedAt:new Date().toISOString(), reviewedBy:window.adaCurrentUser?.uid||null });
     showToast(newStatus==='approved' ? 'Expense approved.' : 'Expense rejected.');
@@ -1877,7 +2005,7 @@ async function loadRevenuePage(){
       <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value pos">${formatCurrency(yt+ig)}</div></div>
     `;
     if (!_revenue.length) { wrap.innerHTML = `<div class="empty"><h3>No revenue recorded yet.</h3></div>`; return; }
-    const canEditRevenue = window.adaCurrentRole === 'admin';
+    const canEditRevenue = canManage('revenue');
     wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Source</th><th>Amount</th><th>Client</th><th>Description</th>${canEditRevenue?'<th></th>':''}</tr></thead><tbody>
       ${_revenue.map(r=>`<tr>
         <td>${formatDate(r.date)}</td>
@@ -1895,7 +2023,7 @@ async function loadRevenuePage(){
 }
 let _editingRevenueId = null;
 window.editRevenue = function(id){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('revenue')) return;
   const r = _revenue.find(x=>x.id===id);
   if (!r) return;
   _editingRevenueId = id;
@@ -1917,7 +2045,7 @@ window.cancelRevenueEdit = function(){
 };
 async function onRevenueFormSubmit(e){
   e.preventDefault();
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot add revenue.', true); return; }
+  if (!canManage('revenue')) { showToast('View-only access — you cannot add revenue.', true); return; }
   const editing = _editingRevenueId;
   const btn = document.getElementById('revSubmitBtn');
   btn.disabled = true;
@@ -1942,7 +2070,7 @@ async function onRevenueFormSubmit(e){
   finally { btn.disabled = false; }
 }
 window.deleteRevenue = async function(id){
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete revenue.', true); return; }
+  if (!canManage('revenue')) { showToast('View-only access — you cannot delete revenue.', true); return; }
   if (!confirm('Delete this revenue entry?')) return;
   try { await deleteDoc(doc(db,'ada_revenue',id)); showToast('Revenue deleted.'); loadRevenuePage(); }
   catch(err) { showToast('Error: '+err.message, true); }
@@ -1968,7 +2096,7 @@ async function loadLiabilityPage(){
     const snap = await getDocs(collection(db,'ada_liability'));
     _liability = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if (!_liability.length) { wrap.innerHTML = `<div class="empty"><h3>No liability recorded yet.</h3></div>`; return; }
-    const canEditLiability = window.adaCurrentRole === 'admin';
+    const canEditLiability = canManage('liability');
     wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Description</th>${canEditLiability?'<th></th>':''}</tr></thead><tbody>
       ${_liability.map(l=>`<tr>
         <td>${formatDate(l.date)}</td>
@@ -1985,7 +2113,7 @@ async function loadLiabilityPage(){
 }
 let _editingLiabilityId = null;
 window.editLiability = function(id){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('liability')) return;
   const l = _liability.find(x=>x.id===id);
   if (!l) return;
   _editingLiabilityId = id;
@@ -2006,7 +2134,7 @@ window.cancelLiabilityEdit = function(){
 };
 async function onLiabilityFormSubmit(e){
   e.preventDefault();
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot record liability.', true); return; }
+  if (!canManage('liability')) { showToast('View-only access — you cannot record liability.', true); return; }
   const editing = _editingLiabilityId;
   const crewId = document.getElementById('liabCrew').value;
   const amount = Number(document.getElementById('liabAmount').value);
@@ -2028,10 +2156,18 @@ async function onLiabilityFormSubmit(e){
   finally { btn.disabled = false; }
 }
 window.deleteLiability = async function(id){
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete liability.', true); return; }
+  if (!canManage('liability')) { showToast('View-only access — you cannot delete liability.', true); return; }
   if (!confirm('Delete this liability entry?')) return;
   try { await deleteDoc(doc(db,'ada_liability',id)); showToast('Deleted.'); loadLiabilityPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
+};
+window.exportLiabilityExcel = function(){
+  if (!_liability.length) { showToast('No liability entries to export.', true); return; }
+  const rows = _liability.map(l=>({ Date:l.date, Crew:l.crewName||crewName(l.crewId), Amount:l.amount, Description:l.description||'' }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Liability');
+  XLSX.writeFile(wb, 'ada_liability.xlsx');
 };
 
 // ═══════════════════ PAYMENTS ═══════════════════
@@ -2045,7 +2181,7 @@ async function loadPaymentsPage(){
     const snap = await getDocs(collection(db,'ada_payments'));
     _payments = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     if (!_payments.length) { wrap.innerHTML = `<div class="empty"><h3>No payments recorded yet.</h3></div>`; return; }
-    const canEditPayments = window.adaCurrentRole === 'admin';
+    const canEditPayments = canManage('payments');
     wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Method</th><th>Notes</th>${canEditPayments?'<th></th>':''}</tr></thead><tbody>
       ${_payments.map(p=>`<tr>
         <td>${formatDate(p.date)}</td>
@@ -2063,7 +2199,7 @@ async function loadPaymentsPage(){
 }
 let _editingPaymentId = null;
 window.editPayment = function(id){
-  if (window.adaCurrentRole !== 'admin') return;
+  if (!canManage('payments')) return;
   const p = _payments.find(x=>x.id===id);
   if (!p) return;
   _editingPaymentId = id;
@@ -2085,7 +2221,7 @@ window.cancelPaymentEdit = function(){
 };
 async function onPaymentFormSubmit(e){
   e.preventDefault();
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot record payments.', true); return; }
+  if (!canManage('payments')) { showToast('View-only access — you cannot record payments.', true); return; }
   const editing = _editingPaymentId;
   const crewId = document.getElementById('payCrew').value;
   const amount = Number(document.getElementById('payAmount').value);
@@ -2108,10 +2244,18 @@ async function onPaymentFormSubmit(e){
   finally { btn.disabled = false; }
 }
 window.deletePayment = async function(id){
-  if (window.adaCurrentRole !== 'admin') { showToast('View-only access — you cannot delete payments.', true); return; }
+  if (!canManage('payments')) { showToast('View-only access — you cannot delete payments.', true); return; }
   if (!confirm('Delete this payment entry?')) return;
   try { await deleteDoc(doc(db,'ada_payments',id)); showToast('Deleted.'); loadPaymentsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
+};
+window.exportPaymentsExcel = function(){
+  if (!_payments.length) { showToast('No payments to export.', true); return; }
+  const rows = _payments.map(p=>({ Date:p.date, Crew:p.crewName||crewName(p.crewId), Amount:p.amount, Method:p.method||'', Notes:p.notes||'' }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Payments');
+  XLSX.writeFile(wb, 'ada_payments.xlsx');
 };
 
 // ═══════════════════ P&L ═══════════════════
