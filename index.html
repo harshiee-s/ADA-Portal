@@ -180,6 +180,10 @@ tr:hover td{background:rgba(10,22,40,.015);}
 .pill-dept-finance{background:rgba(13,122,78,.12);color:#0D7A4E;}
 .pill-dept-location{background:rgba(192,57,43,.12);color:#C0392B;}
 .pill-dept-none{background:rgba(10,22,40,.06);color:var(--text-3);}
+.pill-status-pending{background:var(--warn-bg);color:var(--warn);}
+.pill-status-edited{background:rgba(26,94,187,.12);color:#1A5EBB;}
+.pill-status-approved{background:var(--success-bg);color:var(--success);}
+.pill-status-posted{background:rgba(193,53,132,.12);color:#C13584;}
 select.dept-select-inline{padding:.28rem .5rem;font-size:.72rem;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface-2);font-weight:600;}
 .dept-checks{display:flex;flex-wrap:wrap;gap:.5rem;}
 .dept-check-item{display:flex;align-items:center;gap:.4rem;padding:.4rem .7rem;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface-2);font-size:.8rem;font-weight:600;cursor:pointer;transition:var(--t);user-select:none;}
@@ -286,6 +290,8 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="clients" id="navClients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
       <div class="nav-item" data-page="assets" id="navAssets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
       <div class="nav-item" data-page="tasks" id="navTasks"><i class="fa-solid fa-calendar-days"></i><span>Tasks &amp; Calendar</span></div>
+      <div class="nav-item" data-page="videoediting" id="navVideoEditing"><i class="fa-solid fa-film"></i><span>Video Editing</span></div>
+      <div class="nav-item" data-page="content" id="navContent"><i class="fa-solid fa-photo-film"></i><span>Content</span></div>
       <div class="nav-item" data-page="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></div>
       <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
       <div class="nav-item" data-page="liability"><i class="fa-solid fa-hand-holding-dollar"></i><span>Crew Liability</span></div>
@@ -468,6 +474,73 @@ body.no-scroll{overflow:hidden;}
           </div>
         </div>
         <div id="tasksTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-videoediting">
+      <div class="card panel">
+        <div class="panel-head"><h2><i class="fa-solid fa-film"></i> Select Shoot Date</h2><p>Dates are pulled from the shoots scheduled in Tasks &amp; Calendar. Pick one to log and track its videos.</p></div>
+        <div class="field" style="max-width:340px;">
+          <label>Shoot Date</label>
+          <select class="input" id="veShootDateSelect" onchange="onVeShootDateChange()">
+            <option value="">Select a scheduled shoot date…</option>
+          </select>
+        </div>
+        <div id="veShootSummary" style="margin-top:.9rem;"></div>
+      </div>
+
+      <div class="card panel" id="veAddVideoCard" style="display:none;">
+        <div class="panel-head"><h2>Add / Edit Video</h2></div>
+        <form id="videoForm" class="form-grid">
+          <input type="hidden" id="videoEditId">
+          <div class="field" style="grid-column:1/-1;"><label>Title</label><input class="input" id="videoTitle" required placeholder="e.g. Reel — Client X teaser"></div>
+          <div class="field"><label>Status</label>
+            <select class="input" id="videoStatus">
+              <option value="Pending">Pending</option>
+              <option value="Edited">Edited</option>
+              <option value="Approved">Approved</option>
+              <option value="Posted">Posted</option>
+            </select>
+          </div>
+          <div class="field"><label>Posting Date</label><input class="input" type="date" id="videoPostingDate"></div>
+          <div class="field" style="grid-column:1/-1;"><label>Video Link</label><input class="input" type="url" id="videoLink" placeholder="https://..."></div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="videoSubmitBtn"><i class="fa-solid fa-plus"></i> Add Video</button>
+            <button class="btn btn-secondary" type="button" id="videoCancelEditBtn" style="display:none;" onclick="cancelVideoEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card panel" id="veVideosCard" style="display:none;">
+        <div class="panel-head"><h2>Videos For Selected Date</h2></div>
+        <div id="videosTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-content">
+      <div class="card panel">
+        <div class="panel-head"><h2><i class="fa-solid fa-photo-film"></i> Upload Content</h2><p>Content team only — brief the shoot with the game, props needed, a reference video, the target shoot date, and the script.</p></div>
+        <form id="contentForm" class="form-grid">
+          <input type="hidden" id="contentEditId">
+          <div class="field"><label>Game Name</label><input class="input" id="contentGameName" required placeholder="e.g. Truth or Dare"></div>
+          <div class="field"><label>Shoot Date</label><input class="input" type="date" id="contentShootDate" required></div>
+          <div class="field" style="grid-column:1/-1;"><label>Props Required</label><input class="input" id="contentProps" placeholder="e.g. Dice, blindfold, buzzer"></div>
+          <div class="field" style="grid-column:1/-1;"><label>Reference Video Link</label><input class="input" type="url" id="contentRefLink" placeholder="https://..."></div>
+          <div class="field" style="grid-column:1/-1;">
+            <label>Script (Attachment)</label>
+            <input type="file" id="contentScriptFile" accept=".pdf,.doc,.docx,.txt,image/*" style="display:none;">
+            <label class="file-drop" id="contentScriptDrop" for="contentScriptFile"><i class="fa-solid fa-file-arrow-up"></i> Click to attach the script — PDF, Word, text, or image (max 700 KB)</label>
+          </div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="contentSubmitBtn"><i class="fa-solid fa-plus"></i> Add Content</button>
+            <button class="btn btn-secondary" type="button" id="contentCancelEditBtn" style="display:none;" onclick="cancelContentEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head"><h2>Content History</h2></div>
+        <div id="contentTableWrap"></div>
       </div>
     </section>
 
@@ -698,7 +771,8 @@ window.adaCurrentRole = null;
 window.adaProfile = null;
 window.__creatingAdmin = false;
 window.__adminLaunched = false;
-let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[];
+let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[], _videos=[], _content=[];
+let veState = { selectedShootDate: '' };
 let _expensesVisible = [];
 let _tasks = [];
 
@@ -747,10 +821,16 @@ function inDept(d){ return myDeptList().includes(d); }
 function isFinanceOps(){ return inDept('Finance and Operations'); }
 function isAssetManager(){ return inDept('Asset Manager'); }
 function isLocationManager(){ return inDept('Location Manager'); }
+function isVideoEditing(){ return inDept('Video Editing'); }
+function isContentTeam(){ return inDept('Content'); }
 // Can the current user add/edit/delete within a given section?
 function canManage(section){
   if (roleIsAdmin()) return true;
   if (section === 'users') return false; // Users is always admin-only.
+  // Video Editing and Content sections are exclusive to their own department
+  // (and admin) — deliberately NOT included in the Finance/Ops blanket rule.
+  if (section === 'videoediting') return isVideoEditing();
+  if (section === 'content') return isContentTeam();
   if (isFinanceOps()) return true;
   if (section === 'assets') return isAssetManager();
   if (section === 'locations') return isLocationManager();
@@ -760,6 +840,8 @@ function canManage(section){
 function canViewPage(section){
   if (roleIsAdmin()) return true;
   if (section === 'users') return false;
+  if (section === 'videoediting') return isVideoEditing();
+  if (section === 'content') return isContentTeam();
   if (isFinanceOps()) return true;
   if (section === 'locations') return isLocationManager();
   return false;
@@ -773,6 +855,8 @@ const pageConfig = {
   clients:{t:'Clients', s:'Tag expenses and revenue to a client.'},
   assets:{t:'Assets', s:'Track equipment quantity by location.'},
   tasks:{t:'Tasks & Calendar', s:'Assign and track tasks across departments.'},
+  videoediting:{t:'Video Editing', s:'Track videos shot on each scheduled shoot date, through to posting.'},
+  content:{t:'Content', s:'Upload game briefs — props, reference video, shoot date, and script.'},
   expenses:{t:'Expenses', s:'Log spends with bills attached.'},
   revenue:{t:'Revenue', s:'Income from YouTube and Instagram.'},
   liability:{t:'Crew Liability', s:'Amounts owed to crew members.'},
@@ -918,6 +1002,8 @@ function launchAdminApp(user, profile){
   document.getElementById('navLocations').style.display = canViewPage('locations') ? '' : 'none';
   document.getElementById('navClients').style.display = canViewPage('clients') ? '' : 'none';
   document.getElementById('navPnl').style.display = canViewPage('pnl') ? '' : 'none';
+  document.getElementById('navVideoEditing').style.display = canViewPage('videoediting') ? '' : 'none';
+  document.getElementById('navContent').style.display = canViewPage('content') ? '' : 'none';
   document.getElementById('addAssetCard').style.display = canManage('assets') ? '' : 'none';
   document.getElementById('addRevenueCard').style.display = canManage('revenue') ? '' : 'none';
   document.getElementById('addLiabilityCard').style.display = canManage('liability') ? '' : 'none';
@@ -946,16 +1032,19 @@ function launchAdminApp(user, profile){
   document.getElementById('expFile').addEventListener('change', onExpenseFileChosen);
   document.getElementById('assetFileDrop').addEventListener('click', ()=>document.getElementById('assetFile').click());
   document.getElementById('assetFile').addEventListener('change', onAssetFileChosen);
+  document.getElementById('contentScriptDrop').addEventListener('click', ()=>document.getElementById('contentScriptFile').click());
+  document.getElementById('contentScriptFile').addEventListener('change', onContentFileChosen);
   renderUserFormDeptChecks();
   document.getElementById('taskDate').value = todayISO();
   document.getElementById('shootDate').value = todayISO();
+  document.getElementById('contentShootDate').value = todayISO();
   wireForms();
   showAdminPage('dashboard');
 }
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  const restrictedPages = ['users','items','locations','clients','pnl'];
+  const restrictedPages = ['users','items','locations','clients','pnl','videoediting','content'];
   if (restrictedPages.includes(name) && !canViewPage(name)) name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -968,7 +1057,7 @@ window.showAdminPage = function(name){
     dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
     locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage,
-    pnl: loadPnLPage
+    pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage
   };
   if (loaders[name]) loaders[name]();
 };
@@ -982,6 +1071,8 @@ function wireForms(){
   document.getElementById('assetForm').addEventListener('submit', onAssetFormSubmit);
   document.getElementById('taskForm').addEventListener('submit', onTaskFormSubmit);
   document.getElementById('shootForm').addEventListener('submit', onShootFormSubmit);
+  document.getElementById('videoForm').addEventListener('submit', onVideoFormSubmit);
+  document.getElementById('contentForm').addEventListener('submit', onContentFormSubmit);
   document.getElementById('expenseForm').addEventListener('submit', onExpenseFormSubmit);
   document.getElementById('revenueForm').addEventListener('submit', onRevenueFormSubmit);
   document.getElementById('liabilityForm').addEventListener('submit', onLiabilityFormSubmit);
@@ -1735,6 +1826,295 @@ async function onShootFormSubmit(e){
     await loadTasksPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-clapperboard"></i> Schedule Shoot'; }
+}
+
+// ═══════════════════ VIDEO EDITING ═══════════════════
+// Video Editing team (and admin) only. Shoot dates are sourced straight from
+// the "Schedule Shoot" tasks created in Tasks & Calendar (isShoot:true).
+async function ensureVideosLoaded(){
+  const snap = await getDocs(collection(db,'ada_videos'));
+  _videos = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+function shootTasksList(){
+  return _tasks.filter(t=>t.isShoot).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+}
+
+async function loadVideoEditingPage(){
+  await ensureTasksLoaded();
+  await ensureVideosLoaded();
+  const sel = document.getElementById('veShootDateSelect');
+  const shoots = shootTasksList();
+  const prevSelection = veState.selectedShootDate;
+  sel.innerHTML = `<option value="">Select a scheduled shoot date…</option>` + shoots.map(t=>{
+    const count = _videos.filter(v=>v.shootDate===t.date).length;
+    return `<option value="${t.date}">${formatDate(t.date)} — ${escHtml(t.locationName||'No location')} (${count} video${count===1?'':'s'})</option>`;
+  }).join('');
+  if (prevSelection && shoots.some(t=>t.date===prevSelection)) sel.value = prevSelection;
+  else veState.selectedShootDate = '';
+  renderVeShootDetail();
+}
+
+window.onVeShootDateChange = function(){
+  veState.selectedShootDate = document.getElementById('veShootDateSelect').value;
+  cancelVideoEdit();
+  renderVeShootDetail();
+};
+
+function renderVeShootDetail(){
+  const summaryEl = document.getElementById('veShootSummary');
+  const addCard = document.getElementById('veAddVideoCard');
+  const videosCard = document.getElementById('veVideosCard');
+  const date = veState.selectedShootDate;
+  if (!date) {
+    summaryEl.innerHTML = '';
+    addCard.style.display = 'none';
+    videosCard.style.display = 'none';
+    return;
+  }
+  const shootsForDate = shootTasksList().filter(t=>t.date===date);
+  const videosForDate = _videos.filter(v=>v.shootDate===date);
+  const locations = [...new Set(shootsForDate.map(t=>t.locationName).filter(Boolean))];
+  summaryEl.innerHTML = `
+    <div class="stat-card" style="max-width:340px;">
+      <div class="stat-label">No. of Videos Shot on ${formatDate(date)}</div>
+      <div class="stat-value">${videosForDate.length}</div>
+      ${locations.length ? `<div style="margin-top:.4rem;font-size:.78rem;color:var(--text-dim);"><i class="fa-solid fa-location-dot"></i> ${escHtml(locations.join(', '))}</div>` : ''}
+    </div>`;
+  addCard.style.display = canManage('videoediting') ? '' : 'none';
+  videosCard.style.display = '';
+  renderVideosTable();
+}
+
+function videoStatusPillClass(status){
+  return { Pending:'pill-status-pending', Edited:'pill-status-edited', Approved:'pill-status-approved', Posted:'pill-status-posted' }[status] || 'pill-status-pending';
+}
+
+function renderVideosTable(){
+  const wrap = document.getElementById('videosTableWrap');
+  const date = veState.selectedShootDate;
+  const list = _videos.filter(v=>v.shootDate===date).sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+  const canEdit = canManage('videoediting');
+  if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No videos logged yet.</h3><p>Add the first video shot on this date above.</p></div>`; return; }
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map((v,i)=>`
+    <div class="task-card">
+      <div class="task-top">
+        <div>
+          <div class="task-title">${i+1}. ${escHtml(v.title)}</div>
+          <div class="task-meta">
+            <span class="pill ${videoStatusPillClass(v.status)}">${escHtml(v.status||'Pending')}</span>
+            <span><i class="fa-solid fa-calendar-check"></i> Posting: ${v.postingDate ? formatDate(v.postingDate) : '—'}</span>
+            ${v.videoLink ? `<a href="${escHtml(v.videoLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Video Link</a>` : `<span><i class="fa-solid fa-link-slash"></i> No link yet</span>`}
+          </div>
+        </div>
+        ${canEdit ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          <select class="input" style="width:auto;padding:.3rem .5rem;font-size:.75rem;" onchange="updateVideoStatus('${v.id}', this.value)">
+            ${['Pending','Edited','Approved','Posted'].map(s=>`<option value="${s}" ${v.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+          <button class="mini-btn" onclick="editVideo('${v.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteVideo('${v.id}')"><i class="fa-solid fa-trash"></i></button>
+        </div>` : ''}
+      </div>
+    </div>
+  `).join('') + `</div>`;
+}
+
+window.editVideo = function(id){
+  if (!canManage('videoediting')) return;
+  const v = _videos.find(x=>x.id===id);
+  if (!v) return;
+  document.getElementById('videoEditId').value = v.id;
+  document.getElementById('videoTitle').value = v.title || '';
+  document.getElementById('videoStatus').value = v.status || 'Pending';
+  document.getElementById('videoPostingDate').value = v.postingDate || '';
+  document.getElementById('videoLink').value = v.videoLink || '';
+  document.getElementById('videoSubmitBtn').innerHTML = '<i class="fa-solid fa-check"></i> Save Changes';
+  document.getElementById('videoCancelEditBtn').style.display = '';
+  document.getElementById('videoTitle').focus();
+};
+
+window.cancelVideoEdit = function(){
+  const form = document.getElementById('videoForm');
+  if (form) form.reset();
+  document.getElementById('videoEditId').value = '';
+  document.getElementById('videoSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add Video';
+  document.getElementById('videoCancelEditBtn').style.display = 'none';
+};
+
+window.updateVideoStatus = async function(id, newStatus){
+  if (!canManage('videoediting')) return;
+  try { await updateDoc(doc(db,'ada_videos',id), { status: newStatus }); await ensureVideosLoaded(); renderVideosTable(); showToast('Status updated.'); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+window.deleteVideo = async function(id){
+  if (!canManage('videoediting')) { showToast('You do not have access to remove videos.', true); return; }
+  if (!confirm('Delete this video entry?')) return;
+  try { await deleteDoc(doc(db,'ada_videos',id)); showToast('Deleted.'); await loadVideoEditingPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+async function onVideoFormSubmit(e){
+  e.preventDefault();
+  if (!canManage('videoediting')) { showToast('Only the Video Editing team can log videos.', true); return; }
+  const shootDate = veState.selectedShootDate;
+  if (!shootDate) { showToast('Select a shoot date first.', true); return; }
+  const editId = document.getElementById('videoEditId').value;
+  const title = document.getElementById('videoTitle').value.trim();
+  const status = document.getElementById('videoStatus').value;
+  const postingDate = document.getElementById('videoPostingDate').value;
+  const videoLink = document.getElementById('videoLink').value.trim();
+  if (!title) { showToast('Title is required.', true); return; }
+  const btn = document.getElementById('videoSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+  try {
+    const id = editId || ('video_'+Date.now());
+    await setDoc(doc(db,'ada_videos',id), {
+      shootDate, title, status, postingDate, videoLink,
+      createdAt: editId ? (_videos.find(v=>v.id===editId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      loggedByUid: window.adaCurrentUser?.uid || '', loggedByName: window.adaProfile?.name || window.adaProfile?.email || 'Someone'
+    }, { merge: true });
+    showToast(editId ? 'Video updated.' : 'Video added.');
+    cancelVideoEdit();
+    await loadVideoEditingPage();
+    document.getElementById('veShootDateSelect').value = shootDate;
+    veState.selectedShootDate = shootDate;
+    renderVeShootDetail();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+}
+
+// ═══════════════════ CONTENT ═══════════════════
+// Content team (and admin) only.
+let _pendingScript = null; // {base64, fileName, fileType}
+let _editingContentId = null;
+
+async function ensureContentLoaded(){
+  const snap = await getDocs(collection(db,'ada_content'));
+  _content = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function loadContentPage(){
+  if (!document.getElementById('contentShootDate').value) document.getElementById('contentShootDate').value = todayISO();
+  await ensureContentLoaded();
+  renderContentTable();
+}
+
+async function onContentFileChosen(e){
+  const file = e.target.files[0];
+  const dropEl = document.getElementById('contentScriptDrop');
+  if (!file) { _pendingScript = null; return; }
+  const validTypes = ['application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','text/plain','image/jpeg','image/jpg','image/png','image/webp'];
+  if (!validTypes.includes(file.type)) { showToast('Only PDF, Word, text, or image files are supported.', true); e.target.value=''; return; }
+  if (file.size > 700*1024) { showToast('Script file must be under 700 KB. Try compressing it.', true); e.target.value=''; return; }
+  const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+  _pendingScript = { base64, fileName:file.name, fileType:file.type };
+  dropEl.classList.add('has-file');
+  dropEl.innerHTML = `<i class="fa-solid fa-check"></i> ${escHtml(file.name)} attached`;
+}
+
+function renderContentTable(){
+  const wrap = document.getElementById('contentTableWrap');
+  const canEdit = canManage('content');
+  if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs uploaded yet.</h3><p>Add the first one above.</p></div>`; return; }
+  const list = _content.slice().sort((a,b)=>(b.shootDate||'').localeCompare(a.shootDate||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
+  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Game Name</th><th>Props Required</th><th>Reference Video</th><th>Shoot Date</th><th>Script</th>${canEdit?'<th></th>':''}</tr></thead><tbody>
+    ${list.map(c=>`<tr>
+      <td><strong>${escHtml(c.gameName)}</strong></td>
+      <td style="font-size:.78rem;">${escHtml(c.props||'—')}</td>
+      <td>${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Watch</a>` : '—'}</td>
+      <td>${formatDate(c.shootDate)}</td>
+      <td>${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
+      ${canEdit ? `<td style="display:flex;gap:.3rem;">
+        <button class="mini-btn" onclick="editContent('${c.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="mini-btn mini-btn-danger" onclick="deleteContent('${c.id}')"><i class="fa-solid fa-trash"></i></button>
+      </td>` : ''}
+    </tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+window.viewContentScript = function(id){
+  const c = _content.find(x=>x.id===id);
+  if (!c || !c.scriptBase64) return;
+  const win = window.open('', '_blank');
+  if (c.scriptFileType === 'application/pdf') win.document.write(`<html><body style="margin:0"><embed src="${c.scriptBase64}" type="application/pdf" width="100%" height="100%"></body></html>`);
+  else if ((c.scriptFileType||'').startsWith('image/')) win.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${c.scriptBase64}" style="max-width:100%;max-height:100vh;object-fit:contain"></body></html>`);
+  else {
+    // Word/text docs: trigger a download since browsers can't render them inline.
+    const a = win.document.createElement('a');
+    a.href = c.scriptBase64; a.download = c.scriptFileName || 'script';
+    win.document.body.appendChild(a); a.click();
+    win.document.write(`<p style="font-family:sans-serif;padding:2rem;">Downloading ${escHtml(c.scriptFileName||'script')}…</p>`);
+  }
+};
+
+window.editContent = function(id){
+  if (!canManage('content')) return;
+  const c = _content.find(x=>x.id===id);
+  if (!c) return;
+  _editingContentId = id;
+  document.getElementById('contentGameName').value = c.gameName || '';
+  document.getElementById('contentShootDate').value = c.shootDate || '';
+  document.getElementById('contentProps').value = c.props || '';
+  document.getElementById('contentRefLink').value = c.refLink || '';
+  _pendingScript = null;
+  const dropEl = document.getElementById('contentScriptDrop');
+  dropEl.classList.toggle('has-file', !!c.scriptBase64);
+  dropEl.innerHTML = c.scriptBase64
+    ? `<i class="fa-solid fa-check"></i> Script already attached — choose a file to replace it`
+    : '<i class="fa-solid fa-file-arrow-up"></i> Click to attach the script — PDF, Word, text, or image (max 700 KB)';
+  document.getElementById('contentSubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Content';
+  document.getElementById('contentCancelEditBtn').style.display = '';
+  document.getElementById('contentForm').scrollIntoView({behavior:'smooth', block:'start'});
+};
+
+window.cancelContentEdit = function(){
+  _editingContentId = null;
+  _pendingScript = null;
+  document.getElementById('contentForm').reset();
+  document.getElementById('contentShootDate').value = todayISO();
+  const dropEl = document.getElementById('contentScriptDrop');
+  dropEl.classList.remove('has-file');
+  dropEl.innerHTML = '<i class="fa-solid fa-file-arrow-up"></i> Click to attach the script — PDF, Word, text, or image (max 700 KB)';
+  document.getElementById('contentSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add Content';
+  document.getElementById('contentCancelEditBtn').style.display = 'none';
+};
+
+window.deleteContent = async function(id){
+  if (!canManage('content')) { showToast('You do not have access to remove content.', true); return; }
+  if (!confirm('Delete this content brief?')) return;
+  try { await deleteDoc(doc(db,'ada_content',id)); showToast('Deleted.'); await loadContentPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+
+async function onContentFormSubmit(e){
+  e.preventDefault();
+  if (!canManage('content')) { showToast('Only the Content team can upload content.', true); return; }
+  const editing = _editingContentId;
+  const gameName = document.getElementById('contentGameName').value.trim();
+  const shootDate = document.getElementById('contentShootDate').value;
+  const props = document.getElementById('contentProps').value.trim();
+  const refLink = document.getElementById('contentRefLink').value.trim();
+  if (!gameName || !shootDate) { showToast('Game name and shoot date are required.', true); return; }
+  const btn = document.getElementById('contentSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+  try {
+    const data = { gameName, shootDate, props, refLink };
+    if (_pendingScript) { data.scriptBase64 = _pendingScript.base64; data.scriptFileName = _pendingScript.fileName; data.scriptFileType = _pendingScript.fileType; }
+    if (editing) {
+      await updateDoc(doc(db,'ada_content',editing), data);
+    } else {
+      data.createdAt = new Date().toISOString();
+      data.createdByUid = window.adaCurrentUser?.uid || '';
+      data.createdByName = window.adaProfile?.name || window.adaProfile?.email || 'Someone';
+      await setDoc(doc(db,'ada_content','content_'+Date.now()), data);
+    }
+    showToast(editing ? 'Content updated.' : 'Content added.');
+    cancelContentEdit();
+    await loadContentPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
 }
 
 window.toggleTaskStatus = async function(id){
