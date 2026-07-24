@@ -326,8 +326,8 @@ body.no-scroll{overflow:hidden;}
       <div id="dashAlerts"></div>
       <div class="stats" id="dashStats"></div>
       <div class="card">
-        <div class="panel-head"><h2>Balance Owed to Crew</h2><p>Liability recorded minus payments made, per crew member.</p></div>
-        <div class="balance-grid" id="dashBalanceGrid" style="margin-top:.8rem;"></div>
+        <div class="panel-head"><h2>Video Editing Pipeline</h2><p>Videos currently at each stage, across all shoot dates.</p></div>
+        <div class="stats" id="dashVideoStats" style="margin-top:.8rem;"></div>
       </div>
     </section>
 
@@ -524,6 +524,12 @@ body.no-scroll{overflow:hidden;}
           <input type="hidden" id="contentEditId">
           <div class="field"><label>Game Name</label><input class="input" id="contentGameName" required placeholder="e.g. Truth or Dare"></div>
           <div class="field"><label>Shoot Date</label><input class="input" type="date" id="contentShootDate" required></div>
+          <div class="field"><label>Status</label>
+            <select class="input" id="contentStatus">
+              <option value="Pending">Pending</option>
+              <option value="Shoot done">Shoot done</option>
+            </select>
+          </div>
           <div class="field" style="grid-column:1/-1;"><label>Props Required</label><input class="input" id="contentProps" placeholder="e.g. Dice, blindfold, buzzer"></div>
           <div class="field" style="grid-column:1/-1;"><label>Reference Video Link</label><input class="input" type="url" id="contentRefLink" placeholder="https://..."></div>
           <div class="field" style="grid-column:1/-1;">
@@ -1116,6 +1122,7 @@ async function ensureLocationsLoaded(){
 // ═══════════════════ DASHBOARD ═══════════════════
 async function loadDashboardPage(){
   const wrap = document.getElementById('dashStats');
+  const videoWrap = document.getElementById('dashVideoStats');
   const alertsEl = document.getElementById('dashAlerts');
   wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
@@ -1123,6 +1130,9 @@ async function loadDashboardPage(){
       getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_payments'))
     ]);
     await ensureUsersLoaded();
+    await ensureContentLoaded();
+    await ensureVideosLoaded();
+    if (await syncContentToVideos()) await ensureVideosLoaded();
     const revenue = revSnap.docs.map(d=>d.data());
     const allExpenses = expSnap.docs.map(d=>d.data());
     const expenses = allExpenses.filter(isApprovedExpense);
@@ -1139,6 +1149,7 @@ async function loadDashboardPage(){
     const teamAvailable = totalLiab + totalRev - totalPayments;
     const totalAssetQty = assets.reduce((s,a)=>s+Number(a.quantity||0),0);
     const crewCount = _users.filter(u=>u.role==='crew' && u.status!=='inactive').length;
+    const videosShot = _content.filter(c=>c.status==='Shoot done').length;
     wrap.innerHTML = `
       <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${formatCurrency(totalRev)}</div></div>
       <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${formatCurrency(totalExp)}</div></div>
@@ -1146,8 +1157,15 @@ async function loadDashboardPage(){
       <div class="stat-card"><div class="stat-label">Available Balance (Team)</div><div class="stat-value ${teamAvailable>=0?'pos':'neg'}">${formatCurrency(teamAvailable)}</div></div>
       <div class="stat-card"><div class="stat-label">Asset Units</div><div class="stat-value">${totalAssetQty}</div></div>
       <div class="stat-card"><div class="stat-label">Active Crew</div><div class="stat-value">${crewCount}</div></div>
+      <div class="stat-card"><div class="stat-label">No. of Videos Shot</div><div class="stat-value">${videosShot}</div></div>
     `;
-    await renderBalanceGrid('dashBalanceGrid');
+    const pipelineCounts = { Pending:0, Edited:0, Approved:0, Posted:0 };
+    _videos.forEach(v=>{ const s = v.status||'Pending'; if (pipelineCounts[s]===undefined) pipelineCounts[s]=0; pipelineCounts[s]++; });
+    videoWrap.innerHTML = ['Pending','Edited','Approved','Posted'].map(s=>`
+      <div class="stat-card" onclick="showAdminPage('videoediting')" style="cursor:pointer;">
+        <div class="stat-label">Videos — ${s}</div>
+        <div class="stat-value">${pipelineCounts[s]||0}</div>
+      </div>`).join('');
 
     // Alerts: pending expense approvals (admin only), crew with a balance due, assets low on stock, tasks assigned to me
     const balances = await computeCrewBalances();
@@ -1840,17 +1858,46 @@ function shootTasksList(){
   return _tasks.filter(t=>t.isShoot).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
 }
 
+// Shoot dates come from either a scheduled shoot task, or from a content brief
+// the Content team has marked "Shoot done" — whichever exists.
+function veDatesList(){
+  const taskDates = shootTasksList().map(t=>t.date);
+  const contentDates = _content.filter(c=>c.status==='Shoot done').map(c=>c.shootDate);
+  return [...new Set([...taskDates, ...contentDates].filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+}
+
+// Auto-loads content marked "Shoot done" into the Video Editing section, one
+// video entry per content brief, mapped by shoot date. Only creates an entry
+// the first time (tracked via contentId) — after that the Video Editing team
+// owns the title/status/link and edits from ada_videos directly.
+async function syncContentToVideos(){
+  const doneContent = _content.filter(c=>c.status==='Shoot done');
+  const linkedContentIds = new Set(_videos.filter(v=>v.contentId).map(v=>v.contentId));
+  const toCreate = doneContent.filter(c=>!linkedContentIds.has(c.id));
+  if (!toCreate.length) return false;
+  await Promise.all(toCreate.map(c=>setDoc(doc(db,'ada_videos','video_'+c.id), {
+    shootDate: c.shootDate, title: c.gameName, status: 'Pending', postingDate: '', videoLink: '',
+    contentId: c.id,
+    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+    loggedByUid: '', loggedByName: 'Auto-loaded from Content'
+  }, { merge: true })));
+  return true;
+}
+
 async function loadVideoEditingPage(){
   await ensureTasksLoaded();
+  await ensureContentLoaded();
   await ensureVideosLoaded();
+  if (await syncContentToVideos()) await ensureVideosLoaded();
   const sel = document.getElementById('veShootDateSelect');
-  const shoots = shootTasksList();
+  const dates = veDatesList();
   const prevSelection = veState.selectedShootDate;
-  sel.innerHTML = `<option value="">Select a scheduled shoot date…</option>` + shoots.map(t=>{
-    const count = _videos.filter(v=>v.shootDate===t.date).length;
-    return `<option value="${t.date}">${formatDate(t.date)} — ${escHtml(t.locationName||'No location')} (${count} video${count===1?'':'s'})</option>`;
+  sel.innerHTML = `<option value="">Select a scheduled shoot date…</option>` + dates.map(date=>{
+    const count = _videos.filter(v=>v.shootDate===date).length;
+    const task = shootTasksList().find(t=>t.date===date);
+    return `<option value="${date}">${formatDate(date)} — ${escHtml(task?.locationName||'No location')} (${count} video${count===1?'':'s'})</option>`;
   }).join('');
-  if (prevSelection && shoots.some(t=>t.date===prevSelection)) sel.value = prevSelection;
+  if (prevSelection && dates.includes(prevSelection)) sel.value = prevSelection;
   else veState.selectedShootDate = '';
   renderVeShootDetail();
 }
@@ -1903,6 +1950,7 @@ function renderVideosTable(){
           <div class="task-title">${i+1}. ${escHtml(v.title)}</div>
           <div class="task-meta">
             <span class="pill ${videoStatusPillClass(v.status)}">${escHtml(v.status||'Pending')}</span>
+            ${v.contentId ? `<span><i class="fa-solid fa-photo-film"></i> From Content</span>` : ''}
             <span><i class="fa-solid fa-calendar-check"></i> Posting: ${v.postingDate ? formatDate(v.postingDate) : '—'}</span>
             ${v.videoLink ? `<a href="${escHtml(v.videoLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Video Link</a>` : `<span><i class="fa-solid fa-link-slash"></i> No link yet</span>`}
           </div>
@@ -2029,6 +2077,10 @@ function suggestionsFor(contentId){
   return _contentSuggestions.filter(s=>s.contentId===contentId).sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
 }
 
+function contentStatusPillClass(status){
+  return status === 'Shoot done' ? 'pill-status-approved' : 'pill-status-pending';
+}
+
 function renderContentTable(){
   const wrap = document.getElementById('contentTableWrap');
   const canEdit = canManage('content');
@@ -2042,6 +2094,7 @@ function renderContentTable(){
         <div>
           <div class="task-title">${escHtml(c.gameName)}</div>
           <div class="task-meta">
+            <span class="pill ${contentStatusPillClass(c.status)}">${escHtml(c.status||'Pending')}</span>
             <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
             ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
             ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
@@ -2139,6 +2192,7 @@ window.editContent = function(id){
   _editingContentId = id;
   document.getElementById('contentGameName').value = c.gameName || '';
   document.getElementById('contentShootDate').value = c.shootDate || '';
+  document.getElementById('contentStatus').value = c.status || 'Pending';
   document.getElementById('contentProps').value = c.props || '';
   document.getElementById('contentRefLink').value = c.refLink || '';
   _pendingScript = null;
@@ -2157,6 +2211,7 @@ window.cancelContentEdit = function(){
   _pendingScript = null;
   document.getElementById('contentForm').reset();
   document.getElementById('contentShootDate').value = todayISO();
+  document.getElementById('contentStatus').value = 'Pending';
   const dropEl = document.getElementById('contentScriptDrop');
   dropEl.classList.remove('has-file');
   dropEl.innerHTML = '<i class="fa-solid fa-file-arrow-up"></i> Click to attach the script — PDF, Word, text, or image (max 700 KB)';
@@ -2177,13 +2232,14 @@ async function onContentFormSubmit(e){
   const editing = _editingContentId;
   const gameName = document.getElementById('contentGameName').value.trim();
   const shootDate = document.getElementById('contentShootDate').value;
+  const status = document.getElementById('contentStatus').value;
   const props = document.getElementById('contentProps').value.trim();
   const refLink = document.getElementById('contentRefLink').value.trim();
   if (!gameName || !shootDate) { showToast('Game name and shoot date are required.', true); return; }
   const btn = document.getElementById('contentSubmitBtn');
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
   try {
-    const data = { gameName, shootDate, props, refLink };
+    const data = { gameName, shootDate, status, props, refLink };
     if (_pendingScript) { data.scriptBase64 = _pendingScript.base64; data.scriptFileName = _pendingScript.fileName; data.scriptFileType = _pendingScript.fileType; }
     if (editing) {
       await updateDoc(doc(db,'ada_content',editing), data);
@@ -2196,6 +2252,10 @@ async function onContentFormSubmit(e){
     showToast(editing ? 'Content updated.' : 'Content added.');
     cancelContentEdit();
     await loadContentPage();
+    // If this content is marked Shoot done, push it into Video Editing right away
+    // so the video editing team sees it without needing to revisit this page.
+    await ensureVideosLoaded();
+    await syncContentToVideos();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; }
 }
