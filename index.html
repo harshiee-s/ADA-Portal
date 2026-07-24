@@ -518,7 +518,7 @@ body.no-scroll{overflow:hidden;}
     </section>
 
     <section class="page" id="page-content">
-      <div class="card panel">
+      <div class="card panel" id="addContentCard">
         <div class="panel-head"><h2><i class="fa-solid fa-photo-film"></i> Upload Content</h2><p>Content team only — brief the shoot with the game, props needed, a reference video, the target shoot date, and the script.</p></div>
         <form id="contentForm" class="form-grid">
           <input type="hidden" id="contentEditId">
@@ -539,7 +539,7 @@ body.no-scroll{overflow:hidden;}
       </div>
 
       <div class="card panel">
-        <div class="panel-head"><h2>Content History</h2></div>
+        <div class="panel-head"><h2>Content History</h2><p>Visible to everyone. Anyone can leave a suggestion on a game — only the Content team and admin can edit or remove entries.</p></div>
         <div id="contentTableWrap"></div>
       </div>
     </section>
@@ -841,7 +841,6 @@ function canViewPage(section){
   if (roleIsAdmin()) return true;
   if (section === 'users') return false;
   if (section === 'videoediting') return isVideoEditing();
-  if (section === 'content') return isContentTeam();
   if (isFinanceOps()) return true;
   if (section === 'locations') return isLocationManager();
   return false;
@@ -1003,7 +1002,8 @@ function launchAdminApp(user, profile){
   document.getElementById('navClients').style.display = canViewPage('clients') ? '' : 'none';
   document.getElementById('navPnl').style.display = canViewPage('pnl') ? '' : 'none';
   document.getElementById('navVideoEditing').style.display = canViewPage('videoediting') ? '' : 'none';
-  document.getElementById('navContent').style.display = canViewPage('content') ? '' : 'none';
+  // Content history is visible to everyone; only the upload/edit form is restricted.
+  document.getElementById('addContentCard').style.display = canManage('content') ? '' : 'none';
   document.getElementById('addAssetCard').style.display = canManage('assets') ? '' : 'none';
   document.getElementById('addRevenueCard').style.display = canManage('revenue') ? '' : 'none';
   document.getElementById('addLiabilityCard').style.display = canManage('liability') ? '' : 'none';
@@ -1044,7 +1044,7 @@ function launchAdminApp(user, profile){
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  const restrictedPages = ['users','items','locations','clients','pnl','videoediting','content'];
+  const restrictedPages = ['users','items','locations','clients','pnl','videoediting'];
   if (restrictedPages.includes(name) && !canViewPage(name)) name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -1986,18 +1986,29 @@ async function onVideoFormSubmit(e){
 }
 
 // ═══════════════════ CONTENT ═══════════════════
-// Content team (and admin) only.
+// Content History is viewable by everyone. Only the Content team (and admin)
+// can upload/edit/delete entries — see canManage('content'). Suggestions on
+// a piece of content are open to any signed-in user.
 let _pendingScript = null; // {base64, fileName, fileType}
 let _editingContentId = null;
+let _contentSuggestions = [];
+let _expandedContentIds = new Set();
 
 async function ensureContentLoaded(){
   const snap = await getDocs(collection(db,'ada_content'));
   _content = snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 
+async function ensureContentSuggestionsLoaded(){
+  const snap = await getDocs(collection(db,'ada_content_suggestions'));
+  _contentSuggestions = snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
 async function loadContentPage(){
   if (!document.getElementById('contentShootDate').value) document.getElementById('contentShootDate').value = todayISO();
+  await ensureUsersLoaded();
   await ensureContentLoaded();
+  await ensureContentSuggestionsLoaded();
   renderContentTable();
 }
 
@@ -2014,25 +2025,97 @@ async function onContentFileChosen(e){
   dropEl.innerHTML = `<i class="fa-solid fa-check"></i> ${escHtml(file.name)} attached`;
 }
 
+function suggestionsFor(contentId){
+  return _contentSuggestions.filter(s=>s.contentId===contentId).sort((a,b)=>(a.createdAt||'').localeCompare(b.createdAt||''));
+}
+
 function renderContentTable(){
   const wrap = document.getElementById('contentTableWrap');
   const canEdit = canManage('content');
-  if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs uploaded yet.</h3><p>Add the first one above.</p></div>`; return; }
+  if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs uploaded yet.</h3><p>${canEdit?'Add the first one above.':'Nothing has been uploaded by the Content team yet.'}</p></div>`; return; }
   const list = _content.slice().sort((a,b)=>(b.shootDate||'').localeCompare(a.shootDate||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
-  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Game Name</th><th>Props Required</th><th>Reference Video</th><th>Shoot Date</th><th>Script</th>${canEdit?'<th></th>':''}</tr></thead><tbody>
-    ${list.map(c=>`<tr>
-      <td><strong>${escHtml(c.gameName)}</strong></td>
-      <td style="font-size:.78rem;">${escHtml(c.props||'—')}</td>
-      <td>${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Watch</a>` : '—'}</td>
-      <td>${formatDate(c.shootDate)}</td>
-      <td>${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
-      ${canEdit ? `<td style="display:flex;gap:.3rem;">
-        <button class="mini-btn" onclick="editContent('${c.id}')"><i class="fa-solid fa-pen"></i></button>
-        <button class="mini-btn mini-btn-danger" onclick="deleteContent('${c.id}')"><i class="fa-solid fa-trash"></i></button>
-      </td>` : ''}
-    </tr>`).join('')}
-  </tbody></table></div>`;
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>{
+    const suggestions = suggestionsFor(c.id);
+    const expanded = _expandedContentIds.has(c.id);
+    return `<div class="task-card">
+      <div class="task-top">
+        <div>
+          <div class="task-title">${escHtml(c.gameName)}</div>
+          <div class="task-meta">
+            <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
+            ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
+            ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
+            ${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-file-lines"></i> Script</button>` : `<span><i class="fa-solid fa-file-circle-xmark"></i> No script</span>`}
+          </div>
+        </div>
+        ${canEdit ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          <button class="mini-btn" onclick="editContent('${c.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteContent('${c.id}')"><i class="fa-solid fa-trash"></i></button>
+        </div>` : ''}
+      </div>
+      <div class="task-desc">
+        <button class="mini-btn" type="button" onclick="toggleContentSuggestions('${c.id}')">
+          <i class="fa-solid fa-comments"></i> Suggestions (${suggestions.length}) <i class="fa-solid ${expanded?'fa-chevron-up':'fa-chevron-down'}"></i>
+        </button>
+        <div id="suggestions-${c.id}" style="display:${expanded?'':'none'};margin-top:.6rem;">
+          ${suggestions.length ? `<div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.6rem;">${suggestions.map(s=>`
+            <div style="background:var(--bg-2);border-radius:var(--r-sm);padding:.5rem .7rem;font-size:.8rem;display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start;">
+              <div><strong>${escHtml(s.authorName||'Someone')}</strong>: ${escHtml(s.text)}</div>
+              ${(roleIsAdmin() || s.authorUid===window.adaCurrentUser?.uid) ? `<button class="mini-btn mini-btn-danger" onclick="deleteContentSuggestion('${s.id}','${c.id}')" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
+            </div>`).join('')}</div>` : `<p style="font-size:.8rem;color:var(--text-dim);margin-bottom:.6rem;">No suggestions yet — be the first to add one.</p>`}
+          <form onsubmit="addContentSuggestion(event,'${c.id}')" style="display:flex;gap:.5rem;">
+            <input class="input" placeholder="Add a suggestion for this game…" required>
+            <button class="btn btn-secondary" type="submit"><i class="fa-solid fa-paper-plane"></i> Add</button>
+          </form>
+        </div>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
 }
+
+window.toggleContentSuggestions = function(contentId){
+  const el = document.getElementById('suggestions-'+contentId);
+  if (!el) return;
+  if (_expandedContentIds.has(contentId)) { _expandedContentIds.delete(contentId); el.style.display = 'none'; }
+  else { _expandedContentIds.add(contentId); el.style.display = ''; }
+  const btn = el.previousElementSibling;
+  const icon = btn?.querySelector('.fa-chevron-up, .fa-chevron-down');
+  if (icon) { icon.classList.toggle('fa-chevron-up'); icon.classList.toggle('fa-chevron-down'); }
+};
+
+window.addContentSuggestion = async function(e, contentId){
+  e.preventDefault();
+  const form = e.target;
+  const input = form.querySelector('input');
+  const text = input.value.trim();
+  if (!text) return;
+  const btn = form.querySelector('button');
+  btn.disabled = true;
+  try {
+    await setDoc(doc(db,'ada_content_suggestions','sugg_'+Date.now()), {
+      contentId, text,
+      authorUid: window.adaCurrentUser?.uid || '', authorName: window.adaProfile?.name || window.adaProfile?.email || 'Someone',
+      createdAt: new Date().toISOString()
+    });
+    input.value = '';
+    _expandedContentIds.add(contentId);
+    await ensureContentSuggestionsLoaded();
+    renderContentTable();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+};
+
+window.deleteContentSuggestion = async function(id, contentId){
+  const s = _contentSuggestions.find(x=>x.id===id);
+  if (s && !roleIsAdmin() && s.authorUid !== window.adaCurrentUser?.uid) { showToast('You can only delete your own suggestion.', true); return; }
+  if (!confirm('Delete this suggestion?')) return;
+  try {
+    await deleteDoc(doc(db,'ada_content_suggestions',id));
+    _expandedContentIds.add(contentId);
+    await ensureContentSuggestionsLoaded();
+    renderContentTable();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
 
 window.viewContentScript = function(id){
   const c = _content.find(x=>x.id===id);
