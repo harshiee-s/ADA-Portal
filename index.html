@@ -296,6 +296,7 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
       <div class="nav-item" data-page="liability"><i class="fa-solid fa-hand-holding-dollar"></i><span>Crew Liability</span></div>
       <div class="nav-item" data-page="payments"><i class="fa-solid fa-money-bill-transfer"></i><span>Crew Payments</span></div>
+      <div class="nav-item" data-page="provisions"><i class="fa-solid fa-piggy-bank"></i><span>Provisions</span></div>
       <div class="nav-item" data-page="pnl" id="navPnl"><i class="fa-solid fa-chart-line"></i><span>P&amp;L Report</span></div>
       <div class="nav-item logout-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
     </div>
@@ -678,6 +679,32 @@ body.no-scroll{overflow:hidden;}
       </div>
     </section>
 
+    <section class="page" id="page-provisions">
+      <div class="card">
+        <div class="panel-head"><h2>Revenue Balance</h2><p>Revenue not yet set aside as a provision. A provision can only be added up to this amount.</p></div>
+        <div class="stats" id="provisionStats" style="margin-top:.8rem;"></div>
+      </div>
+      <div class="card panel" id="addProvisionCard">
+        <div class="panel-head"><h2>Add Provision</h2><p>Set aside an amount from available revenue into the team available balance.</p></div>
+        <form id="provisionForm" class="form-grid">
+          <div class="field"><label>Amount (₹)</label><input class="input" type="number" min="0" step="0.01" id="provAmount" required></div>
+          <div class="field"><label>Date</label><input class="input" type="date" id="provDate" required></div>
+          <div class="field" style="grid-column:1/-1;"><label>Description</label><input class="input" id="provDescription" placeholder="e.g. Reserve for upcoming shoot"></div>
+          <div class="field" style="align-self:flex-end;display:flex;gap:.5rem;">
+            <button class="btn btn-gold" type="submit" id="provSubmitBtn"><i class="fa-solid fa-plus"></i> Add Provision</button>
+            <button class="btn btn-secondary" type="button" id="provCancelEditBtn" style="display:none;" onclick="cancelProvisionEdit()">Cancel</button>
+          </div>
+        </form>
+      </div>
+      <div class="card panel">
+        <div class="panel-head">
+          <h2>Provision History</h2>
+          <button class="btn btn-secondary" onclick="exportProvisionsExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+        </div>
+        <div id="provisionsTableWrap"></div>
+      </div>
+    </section>
+
     <section class="page" id="page-pnl">
       <div class="card">
         <div class="panel-head">
@@ -777,7 +804,7 @@ window.adaCurrentRole = null;
 window.adaProfile = null;
 window.__creatingAdmin = false;
 window.__adminLaunched = false;
-let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[], _videos=[], _content=[];
+let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[], _provisions=[], _videos=[], _content=[];
 let veState = { selectedShootDate: '' };
 let _expensesVisible = [];
 let _tasks = [];
@@ -866,6 +893,7 @@ const pageConfig = {
   revenue:{t:'Revenue', s:'Income from YouTube and Instagram.'},
   liability:{t:'Crew Liability', s:'Amounts owed to crew members.'},
   payments:{t:'Crew Payments', s:'Payments made to crew members.'},
+  provisions:{t:'Provisions', s:'Set aside funds from available revenue into the team available balance.'},
   pnl:{t:'P&L Report', s:'Revenue vs expenses over time.'}
 };
 
@@ -1014,6 +1042,7 @@ function launchAdminApp(user, profile){
   document.getElementById('addRevenueCard').style.display = canManage('revenue') ? '' : 'none';
   document.getElementById('addLiabilityCard').style.display = canManage('liability') ? '' : 'none';
   document.getElementById('addPaymentCard').style.display = canManage('payments') ? '' : 'none';
+  document.getElementById('addProvisionCard').style.display = canManage('provisions') ? '' : 'none';
   document.getElementById('scheduleShootCard').style.display = (isAdmin || isLocationManager()) ? '' : 'none';
 
   if (window.__adminLaunched) return;
@@ -1030,6 +1059,7 @@ function launchAdminApp(user, profile){
   document.getElementById('revDate').value = todayISO();
   document.getElementById('liabDate').value = todayISO();
   document.getElementById('payDate').value = todayISO();
+  document.getElementById('provDate').value = todayISO();
   const now = new Date();
   const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
   document.getElementById('pnlFrom').value = firstOfMonth;
@@ -1062,7 +1092,7 @@ window.showAdminPage = function(name){
   const loaders = {
     dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
     locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
-    revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage,
+    revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage, provisions: loadProvisionsPage,
     pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage
   };
   if (loaders[name]) loaders[name]();
@@ -1083,6 +1113,7 @@ function wireForms(){
   document.getElementById('revenueForm').addEventListener('submit', onRevenueFormSubmit);
   document.getElementById('liabilityForm').addEventListener('submit', onLiabilityFormSubmit);
   document.getElementById('paymentForm').addEventListener('submit', onPaymentFormSubmit);
+  document.getElementById('provisionForm').addEventListener('submit', onProvisionFormSubmit);
 }
 
 // ─── CREW HELPERS ───
@@ -1126,8 +1157,8 @@ async function loadDashboardPage(){
   const alertsEl = document.getElementById('dashAlerts');
   wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
-    const [revSnap, expSnap, assetSnap, liabSnap, paySnap] = await Promise.all([
-      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_payments'))
+    const [revSnap, expSnap, assetSnap, liabSnap, paySnap, provSnap] = await Promise.all([
+      getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_liability')), getDocs(collection(db,'ada_payments')), getDocs(collection(db,'ada_provisions'))
     ]);
     await ensureUsersLoaded();
     await ensureContentLoaded();
@@ -1139,14 +1170,21 @@ async function loadDashboardPage(){
     const assets = assetSnap.docs.map(d=>d.data());
     const liability = liabSnap.docs.map(d=>d.data());
     const payments = paySnap.docs.map(d=>d.data());
+    const provisions = provSnap.docs.map(d=>d.data());
     const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
     const totalExp = expenses.reduce((s,r)=>s+Number(r.amount||0),0);
     const totalLiab = liability.reduce((s,l)=>s+Number(l.amount||0),0);
     const totalPayments = payments.reduce((s,p)=>s+Number(p.amount||0),0);
-    const net = totalRev - totalExp;
-    // Available Balance (Team) = Crew Liability + Revenue - Crew Payments.
-    // Every payment made to a crew member reduces this balance immediately.
-    const teamAvailable = totalLiab + totalRev - totalPayments;
+    const totalProv = provisions.reduce((s,p)=>s+Number(p.amount||0),0);
+    // Net P&L = Revenue - Crew Expenses - Crew Liability.
+    const net = totalRev - totalExp - totalLiab;
+    // Revenue Balance = Revenue not yet set aside as a provision.
+    const revenueBalance = totalRev - totalProv;
+    // Available Balance (Team) = Crew Liability + (Revenue - Provision) - Crew Payments - Crew Expenses + Provision.
+    // Revenue already includes whatever's been provisioned, so it's subtracted out of the
+    // revenue component first (revenueBalance) and re-added as its own line — this keeps a
+    // provision from being counted twice while still tracking it as its own component.
+    const teamAvailable = totalLiab + revenueBalance - totalPayments - totalExp + totalProv;
     const totalAssetQty = assets.reduce((s,a)=>s+Number(a.quantity||0),0);
     const crewCount = _users.filter(u=>u.role==='crew' && u.status!=='inactive').length;
     const videosShot = _content.filter(c=>c.status==='Shoot done').length;
@@ -1154,7 +1192,8 @@ async function loadDashboardPage(){
       <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${formatCurrency(totalRev)}</div></div>
       <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${formatCurrency(totalExp)}</div></div>
       <div class="stat-card"><div class="stat-label">Net P&amp;L</div><div class="stat-value ${net>=0?'pos':'neg'}">${formatCurrency(net)}</div></div>
-      <div class="stat-card"><div class="stat-label">Available Balance (Team)</div><div class="stat-value ${teamAvailable>=0?'pos':'neg'}">${formatCurrency(teamAvailable)}</div></div>
+      <div class="stat-card" onclick="showAdminPage('provisions')" style="cursor:pointer;"><div class="stat-label">Revenue Balance</div><div class="stat-value ${revenueBalance>=0?'pos':'neg'}">${formatCurrency(revenueBalance)}</div></div>
+      <div class="stat-card" onclick="showAdminPage('liability')" style="cursor:pointer;"><div class="stat-label">Available Balance (Team)</div><div class="stat-value ${teamAvailable>=0?'pos':'neg'}">${formatCurrency(teamAvailable)}</div></div>
       <div class="stat-card"><div class="stat-label">Asset Units</div><div class="stat-value">${totalAssetQty}</div></div>
       <div class="stat-card"><div class="stat-label">Active Crew</div><div class="stat-value">${crewCount}</div></div>
       <div class="stat-card"><div class="stat-label">No. of Videos Shot</div><div class="stat-value">${videosShot}</div></div>
@@ -2781,6 +2820,110 @@ window.exportPaymentsExcel = function(){
   XLSX.writeFile(wb, 'ada_payments.xlsx');
 };
 
+// ═══════════════════ PROVISIONS ═══════════════════
+// A provision sets aside an amount from available (unprovisioned) revenue.
+// Revenue Balance = Total Revenue - Total Provisions already recorded — a
+// provision can only be added up to whatever this balance currently is.
+// Adding a provision reduces the Revenue Balance and is added into the
+// Available Balance (Team) shown on the dashboard — see loadDashboardPage().
+async function computeRevenueBalance(excludingId){
+  const [revSnap, provSnap] = await Promise.all([getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_provisions'))]);
+  const totalRev = revSnap.docs.map(d=>d.data()).reduce((s,r)=>s+Number(r.amount||0),0);
+  const totalProv = provSnap.docs.map(d=>({id:d.id,...d.data()})).filter(p=>p.id!==excludingId).reduce((s,p)=>s+Number(p.amount||0),0);
+  return { totalRev, totalProv, revenueBalance: totalRev-totalProv };
+}
+async function loadProvisionsPage(){
+  const wrap = document.getElementById('provisionsTableWrap');
+  const statsWrap = document.getElementById('provisionStats');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const snap = await getDocs(collection(db,'ada_provisions'));
+    _provisions = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const { totalRev, totalProv, revenueBalance } = await computeRevenueBalance(null);
+    statsWrap.innerHTML = `
+      <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${formatCurrency(totalRev)}</div></div>
+      <div class="stat-card"><div class="stat-label">Already Provisioned</div><div class="stat-value neg">${formatCurrency(totalProv)}</div></div>
+      <div class="stat-card"><div class="stat-label">Revenue Balance</div><div class="stat-value ${revenueBalance>=0?'pos':'neg'}">${formatCurrency(revenueBalance)}</div></div>
+    `;
+    if (!_provisions.length) { wrap.innerHTML = `<div class="empty"><h3>No provisions recorded yet.</h3></div>`; return; }
+    const canEditProvisions = canManage('provisions');
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Description</th>${canEditProvisions?'<th></th>':''}</tr></thead><tbody>
+      ${_provisions.map(p=>`<tr>
+        <td>${formatDate(p.date)}</td>
+        <td><strong>${formatCurrency(p.amount)}</strong></td>
+        <td style="font-size:.8rem;">${escHtml(p.description||'—')}</td>
+        ${canEditProvisions ? `<td style="display:flex;gap:.3rem;">
+          <button class="mini-btn" onclick="editProvision('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="mini-btn mini-btn-danger" onclick="deleteProvision('${p.id}')"><i class="fa-solid fa-trash"></i></button>
+        </td>` : ''}
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading provisions.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+let _editingProvisionId = null;
+window.editProvision = function(id){
+  if (!canManage('provisions')) return;
+  const p = _provisions.find(x=>x.id===id);
+  if (!p) return;
+  _editingProvisionId = id;
+  document.getElementById('provAmount').value = p.amount || '';
+  document.getElementById('provDate').value = p.date || '';
+  document.getElementById('provDescription').value = p.description || '';
+  document.getElementById('provSubmitBtn').innerHTML = '<i class="fa-solid fa-pen"></i> Update Provision';
+  document.getElementById('provCancelEditBtn').style.display = '';
+  document.getElementById('provisionForm').scrollIntoView({behavior:'smooth', block:'start'});
+};
+window.cancelProvisionEdit = function(){
+  _editingProvisionId = null;
+  document.getElementById('provisionForm').reset();
+  document.getElementById('provDate').value = todayISO();
+  document.getElementById('provSubmitBtn').innerHTML = '<i class="fa-solid fa-plus"></i> Add Provision';
+  document.getElementById('provCancelEditBtn').style.display = 'none';
+};
+async function onProvisionFormSubmit(e){
+  e.preventDefault();
+  if (!canManage('provisions')) { showToast('View-only access — you cannot add provisions.', true); return; }
+  const editing = _editingProvisionId;
+  const amount = Number(document.getElementById('provAmount').value);
+  const date = document.getElementById('provDate').value;
+  const description = document.getElementById('provDescription').value.trim();
+  const btn = document.getElementById('provSubmitBtn');
+  btn.disabled = true;
+  try {
+    // Only allow provisioning up to whatever revenue is currently unprovisioned.
+    // When editing, exclude the entry being edited from "already provisioned" first.
+    const { revenueBalance } = await computeRevenueBalance(editing || null);
+    if (amount > revenueBalance) {
+      showToast(`Only ${formatCurrency(revenueBalance)} of revenue is available to provision.`, true);
+      btn.disabled = false;
+      return;
+    }
+    if (editing) {
+      await updateDoc(doc(db,'ada_provisions',editing), { amount, date, description });
+    } else {
+      await setDoc(doc(db,'ada_provisions','prov_'+Date.now()), { amount, date, description, createdAt:new Date().toISOString(), createdBy: window.adaCurrentUser?.uid||null });
+    }
+    cancelProvisionEdit();
+    showToast(editing ? 'Provision updated.' : 'Provision added.');
+    loadProvisionsPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+}
+window.deleteProvision = async function(id){
+  if (!canManage('provisions')) { showToast('View-only access — you cannot delete provisions.', true); return; }
+  if (!confirm('Delete this provision? This will reduce the Available Balance (Team) accordingly.')) return;
+  try { await deleteDoc(doc(db,'ada_provisions',id)); showToast('Deleted.'); loadProvisionsPage(); }
+  catch(err) { showToast('Error: '+err.message, true); }
+};
+window.exportProvisionsExcel = function(){
+  if (!_provisions.length) { showToast('No provisions to export.', true); return; }
+  const rows = _provisions.map(p=>({ Date:p.date, Amount:p.amount, Description:p.description||'' }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Provisions');
+  XLSX.writeFile(wb, 'ada_provisions.xlsx');
+};
+
 // ═══════════════════ P&L ═══════════════════
 function renderPnLTrendChart(containerId, sortedMonths, months){
   const el = document.getElementById(containerId);
@@ -2830,29 +2973,34 @@ async function loadPnLPage(){
   try {
     const from = document.getElementById('pnlFrom').value;
     const to = document.getElementById('pnlTo').value;
-    const [revSnap, expSnap] = await Promise.all([getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses'))]);
+    const [revSnap, expSnap, liabSnap] = await Promise.all([getDocs(collection(db,'ada_revenue')), getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_liability'))]);
     let revenue = revSnap.docs.map(d=>d.data());
     let expenses = expSnap.docs.map(d=>d.data()).filter(isApprovedExpense);
-    if (from) { revenue = revenue.filter(r=>r.date>=from); expenses = expenses.filter(r=>r.date>=from); }
-    if (to) { revenue = revenue.filter(r=>r.date<=to); expenses = expenses.filter(r=>r.date<=to); }
+    let liability = liabSnap.docs.map(d=>d.data());
+    if (from) { revenue = revenue.filter(r=>r.date>=from); expenses = expenses.filter(r=>r.date>=from); liability = liability.filter(l=>l.date>=from); }
+    if (to) { revenue = revenue.filter(r=>r.date<=to); expenses = expenses.filter(r=>r.date<=to); liability = liability.filter(l=>l.date<=to); }
     const totalRev = revenue.reduce((s,r)=>s+Number(r.amount||0),0);
     const totalExp = expenses.reduce((s,r)=>s+Number(r.amount||0),0);
-    const net = totalRev - totalExp;
+    const totalLiab = liability.reduce((s,l)=>s+Number(l.amount||0),0);
+    // Net P&L = Revenue - Crew Expenses - Crew Liability.
+    const net = totalRev - totalExp - totalLiab;
     statsWrap.innerHTML = `
       <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value pos">${formatCurrency(totalRev)}</div></div>
       <div class="stat-card"><div class="stat-label">Expenses</div><div class="stat-value neg">${formatCurrency(totalExp)}</div></div>
+      <div class="stat-card"><div class="stat-label">Crew Liability</div><div class="stat-value neg">${formatCurrency(totalLiab)}</div></div>
       <div class="stat-card"><div class="stat-label">Net P&amp;L</div><div class="stat-value ${net>=0?'pos':'neg'}">${formatCurrency(net)}</div></div>
     `;
     // monthly breakdown
     const months = {};
-    revenue.forEach(r=>{ const m=(r.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0}; months[m].rev+=Number(r.amount||0); });
-    expenses.forEach(x=>{ const m=(x.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0}; months[m].exp+=Number(x.amount||0); });
+    revenue.forEach(r=>{ const m=(r.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0,liab:0}; months[m].rev+=Number(r.amount||0); });
+    expenses.forEach(x=>{ const m=(x.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0,liab:0}; months[m].exp+=Number(x.amount||0); });
+    liability.forEach(l=>{ const m=(l.date||'').slice(0,7); if(!m) return; months[m]=months[m]||{rev:0,exp:0,liab:0}; months[m].liab+=Number(l.amount||0); });
     const sortedMonths = Object.keys(months).sort();
     renderPnLTrendChart('pnlTrendChart', sortedMonths, months);
     if (!sortedMonths.length) { monthlyWrap.innerHTML = `<div class="empty"><h3>No data in this range.</h3></div>`; }
     else {
-      monthlyWrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Net</th></tr></thead><tbody>
-        ${sortedMonths.map(m=>{ const d=months[m]; const n=d.rev-d.exp; return `<tr><td>${m}</td><td>${formatCurrency(d.rev)}</td><td>${formatCurrency(d.exp)}</td><td style="color:${n>=0?'var(--success)':'var(--error)'};font-weight:700;">${formatCurrency(n)}</td></tr>`; }).join('')}
+      monthlyWrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Month</th><th>Revenue</th><th>Expenses</th><th>Liability</th><th>Net</th></tr></thead><tbody>
+        ${sortedMonths.map(m=>{ const d=months[m]; const n=d.rev-d.exp-d.liab; return `<tr><td>${m}</td><td>${formatCurrency(d.rev)}</td><td>${formatCurrency(d.exp)}</td><td>${formatCurrency(d.liab)}</td><td style="color:${n>=0?'var(--success)':'var(--error)'};font-weight:700;">${formatCurrency(n)}</td></tr>`; }).join('')}
       </tbody></table></div>`;
     }
     // by category
@@ -2876,16 +3024,16 @@ async function loadPnLPage(){
         ${clientKeys.map(c=>{ const d=clientAgg[c]; const n=d.rev-d.exp; return `<tr><td><strong>${escHtml(c)}</strong></td><td>${formatCurrency(d.rev)}</td><td>${formatCurrency(d.exp)}</td><td style="color:${n>=0?'var(--success)':'var(--error)'};font-weight:700;">${formatCurrency(n)}</td></tr>`; }).join('')}
       </tbody></table></div>`;
     }
-    window._pnlExport = { revenue, expenses, months, sortedMonths, cats, catKeys, clientAgg, clientKeys, totalRev, totalExp, net };
+    window._pnlExport = { revenue, expenses, liability, months, sortedMonths, cats, catKeys, clientAgg, clientKeys, totalRev, totalExp, totalLiab, net };
   } catch(err) { statsWrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading P&amp;L.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 window.exportPnLExcel = function(){
   const d = window._pnlExport;
   if (!d) { showToast('Nothing to export yet.', true); return; }
   const wb = XLSX.utils.book_new();
-  const summary = [{ Metric:'Total Revenue', Value:d.totalRev }, { Metric:'Total Expenses', Value:d.totalExp }, { Metric:'Net P&L', Value:d.net }];
+  const summary = [{ Metric:'Total Revenue', Value:d.totalRev }, { Metric:'Total Expenses', Value:d.totalExp }, { Metric:'Total Liability', Value:d.totalLiab }, { Metric:'Net P&L', Value:d.net }];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), 'Summary');
-  const monthly = d.sortedMonths.map(m=>({ Month:m, Revenue:d.months[m].rev, Expenses:d.months[m].exp, Net:d.months[m].rev-d.months[m].exp }));
+  const monthly = d.sortedMonths.map(m=>({ Month:m, Revenue:d.months[m].rev, Expenses:d.months[m].exp, Liability:d.months[m].liab, Net:d.months[m].rev-d.months[m].exp-d.months[m].liab }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthly), 'Monthly');
   const byCat = d.catKeys.map(c=>({ Category:c, Amount:d.cats[c] }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byCat), 'By Category');
