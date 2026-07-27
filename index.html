@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+(function(){
+  try {
+    var saved = localStorage.getItem('ada-theme');
+    var theme = saved || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  } catch(e) {}
+})();
+</script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AAA Portal | Crew Operations</title>
@@ -28,7 +37,24 @@
   --font-head:"DM Serif Display",serif;
   --font-body:"DM Sans",sans-serif;
   --font-mono:"JetBrains Mono",monospace;
+  --heading:#0A1628;
+  --header-bg:rgba(244,243,238,.92);
 }
+:root[data-theme="dark"] {
+  --bg:#0B1220; --surface:#131C2E; --surface-2:#0F1728;
+  --gold:#E2BC5E; --gold-soft:rgba(226,188,94,0.15); --gold-border:rgba(226,188,94,0.3);
+  --text:#EDEFF3; --text-2:#A7B0BE; --text-3:#6B7686;
+  --border:rgba(237,239,243,0.1); --border-2:rgba(237,239,243,0.06);
+  --success:#3FCB8E; --success-bg:rgba(13,122,78,0.18);
+  --warn:#E0A93E; --warn-bg:rgba(160,92,0,0.18);
+  --error:#F0796B; --error-bg:rgba(192,57,43,0.18);
+  --info:#5B9CF0; --info-bg:rgba(26,94,187,0.18);
+  --shadow-sm:0 1px 4px rgba(0,0,0,0.24),0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-md:0 8px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.05);
+  --heading:#F4F3EE;
+  --header-bg:rgba(19,28,46,.85);
+}
+body,.card,.stat-card,.header,.sidebar,input,select,textarea{transition:background var(--t),color var(--t),border-color var(--t);}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{font-family:var(--font-body);color:var(--text);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased;}
@@ -81,20 +107,35 @@ a{text-decoration:none;color:inherit;}
 .sidebar-footer{margin-top:auto;padding:.85rem 1rem;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.15);border-radius:var(--r-md);font-size:.72rem;color:rgba(255,255,255,.55);}
 .sidebar-footer strong{display:block;color:#E2BC5E;margin-bottom:.25rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;}
 
-.header{grid-column:2;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;background:rgba(244,243,238,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:6;gap:1rem;}
+.header{grid-column:2;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;background:var(--header-bg);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:6;gap:1rem;}
 .header-title{min-width:0;}
-.header-title h1{font-family:var(--font-head);font-size:1.3rem;color:var(--primary);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.header-title h1{font-family:var(--font-head);font-size:1.3rem;color:var(--heading);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .header-title p{font-size:.79rem;color:var(--text-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .header-actions{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;}
 .role-badge{padding:.3rem .8rem;border-radius:var(--r-pill);font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;background:var(--gold-soft);color:var(--warn);border:1px solid var(--gold-border);}
 .role-badge.role-crew{background:var(--info-bg);color:var(--info);border-color:rgba(26,94,187,.2);}
+
+.notif-wrap{position:relative;}
+.notif-btn{position:relative;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-2);background:var(--surface);border:1px solid var(--border);transition:var(--t);font-size:.95rem;}
+.notif-btn:hover{color:var(--heading);background:var(--surface-2);}
+.notif-count{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:var(--error);color:#fff;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 2px var(--surface);}
+.notif-dropdown{position:absolute;top:calc(100% + 10px);right:0;width:340px;max-width:calc(100vw - 2rem);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-md);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-6px);transition:var(--t);z-index:50;}
+.notif-dropdown.open{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0);}
+.notif-dropdown-head{padding:.85rem 1rem;font-size:.85rem;font-weight:700;color:var(--heading);border-bottom:1px solid var(--border-2);}
+.notif-dropdown-body{padding:.5rem;max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:.2rem;}
+.notif-item{cursor:pointer;font-size:.83rem;color:var(--warn);display:flex;align-items:flex-start;gap:.55rem;padding:.55rem .6rem;border-radius:var(--r-sm);transition:var(--t);}
+.notif-item i{margin-top:2px;}
+.notif-item:hover{background:rgba(160,92,0,.1);}
+.notif-empty{padding:1.5rem 1rem;text-align:center;font-size:.83rem;color:var(--text-3);}
+.theme-toggle-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-2);background:var(--surface);border:1px solid var(--border);transition:var(--t);font-size:.9rem;}
+.theme-toggle-btn:hover{color:var(--heading);background:var(--surface-2);}
 
 .btn{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1rem;font-size:.82rem;font-weight:600;border-radius:var(--r-pill);border:1px solid transparent;transition:var(--t);white-space:nowrap;}
 .btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(10,22,40,.25);}
 .btn-primary:hover{background:var(--primary-mid);transform:translateY(-1px);}
 .btn-gold{background:linear-gradient(135deg,#E2BC5E,#C9A84C);color:var(--primary);}
 .btn-gold:hover{filter:brightness(1.04);transform:translateY(-1px);}
-.btn-secondary{background:var(--surface);color:var(--primary);border-color:var(--border);}
+.btn-secondary{background:var(--surface);color:var(--heading);border-color:var(--border);}
 .btn-secondary:hover{background:var(--primary);color:#fff;}
 .btn-danger{background:var(--error-bg);color:var(--error);border-color:rgba(192,57,43,.2);}
 .btn-danger:hover{background:var(--error);color:#fff;}
@@ -107,13 +148,13 @@ a{text-decoration:none;color:inherit;}
 .card{background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:1.2rem 1.3rem;}
 .panel{display:flex;flex-direction:column;gap:1rem;}
 .panel-head{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:.6rem;}
-.panel-head h2{font-family:var(--font-head);font-size:1.15rem;color:var(--primary);letter-spacing:-.02em;}
+.panel-head h2{font-family:var(--font-head);font-size:1.15rem;color:var(--heading);letter-spacing:-.02em;}
 .panel-head p{font-size:.79rem;color:var(--text-3);margin-top:2px;}
 
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;}
 .stat-card{background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--border);box-shadow:var(--shadow-sm);padding:1.1rem 1.2rem;}
 .stat-card .stat-label{font-size:.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
-.stat-card .stat-value{font-family:var(--font-head);font-size:1.6rem;color:var(--primary);margin-top:.3rem;}
+.stat-card .stat-value{font-family:var(--font-head);font-size:1.6rem;color:var(--heading);margin-top:.3rem;}
 .stat-card .stat-value.pos{color:var(--success);}
 .stat-card .stat-value.neg{color:var(--error);}
 
@@ -160,21 +201,20 @@ tr:hover td{background:rgba(10,22,40,.015);}
 
 .tabs-row{display:flex;gap:.4rem;border-bottom:1px solid var(--border);margin-bottom:.2rem;flex-wrap:wrap;}
 .tab-btn{padding:.55rem .9rem;font-size:.82rem;font-weight:600;color:var(--text-3);border-bottom:2px solid transparent;transition:var(--t);}
-.tab-btn.active{color:var(--primary);border-bottom-color:var(--gold);}
+.tab-btn.active{color:var(--heading);border-bottom-color:var(--gold);}
 
 .balance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;}
 .balance-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:.85rem .95rem;}
-.balance-card .name{font-weight:700;font-size:.86rem;color:var(--primary);}
+.balance-card .name{font-weight:700;font-size:.86rem;color:var(--heading);}
 .balance-card .row{display:flex;justify-content:space-between;font-size:.76rem;color:var(--text-3);margin-top:.35rem;}
 .balance-card .row strong{color:var(--text);}
 .balance-card .due{margin-top:.4rem;font-family:var(--font-head);font-size:1.15rem;}
-.alert-item{cursor:pointer;font-size:.85rem;color:var(--warn);display:flex;align-items:center;gap:.5rem;padding:.45rem .5rem;border-radius:var(--r-sm);transition:var(--t);}
-.alert-item:hover{background:rgba(160,92,0,.1);}
 .due.pos{color:var(--error);}
 .due.zero{color:var(--success);}
 
 
 .pill-dept-content{background:rgba(26,94,187,.12);color:#1A5EBB;}
+.pill-dept-direction{background:rgba(111,66,193,.12);color:#6F42C1;}
 .pill-dept-video{background:rgba(193,53,132,.12);color:#C13584;}
 .pill-dept-asset{background:rgba(160,92,0,.12);color:#A05C00;}
 .pill-dept-finance{background:rgba(13,122,78,.12);color:#0D7A4E;}
@@ -222,12 +262,12 @@ select.dept-select-inline{padding:.28rem .5rem;font-size:.72rem;border-radius:va
 .task-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:.8rem .9rem;display:flex;flex-direction:column;gap:.4rem;}
 .task-card.done{opacity:.6;}
 .task-card .task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem;flex-wrap:wrap;}
-.task-card .task-title{font-weight:700;font-size:.9rem;color:var(--primary);}
+.task-card .task-title{font-weight:700;font-size:.9rem;color:var(--heading);}
 .task-card.done .task-title{text-decoration:line-through;}
 .task-card .task-meta{font-size:.74rem;color:var(--text-3);display:flex;gap:.8rem;flex-wrap:wrap;margin-top:.1rem;}
 .task-card .task-desc{font-size:.8rem;color:var(--text-2);}
 
-.hamburger-btn{display:none;background:none;border:none;color:var(--primary);font-size:1.15rem;padding:.5rem .6rem;border-radius:var(--r-sm);flex-shrink:0;}
+.hamburger-btn{display:none;background:none;border:none;color:var(--heading);font-size:1.15rem;padding:.5rem .6rem;border-radius:var(--r-sm);flex-shrink:0;}
 .hamburger-btn:hover{background:rgba(10,22,40,.06);}
 .sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(10,22,40,.55);z-index:40;}
 .sidebar-backdrop.show{display:block;}
@@ -290,8 +330,9 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="clients" id="navClients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
       <div class="nav-item" data-page="assets" id="navAssets"><i class="fa-solid fa-boxes-stacked"></i><span>Assets</span></div>
       <div class="nav-item" data-page="tasks" id="navTasks"><i class="fa-solid fa-calendar-days"></i><span>Tasks &amp; Calendar</span></div>
-      <div class="nav-item" data-page="videoediting" id="navVideoEditing"><i class="fa-solid fa-film"></i><span>Video Editing</span></div>
       <div class="nav-item" data-page="content" id="navContent"><i class="fa-solid fa-photo-film"></i><span>Content</span></div>
+      <div class="nav-item" data-page="direction" id="navDirection"><i class="fa-solid fa-clapperboard"></i><span>Direction</span></div>
+      <div class="nav-item" data-page="videoediting" id="navVideoEditing"><i class="fa-solid fa-film"></i><span>Video Editing</span></div>
       <div class="nav-item" data-page="expenses"><i class="fa-solid fa-receipt"></i><span>Expenses</span></div>
       <div class="nav-item" data-page="revenue"><i class="fa-solid fa-sack-dollar"></i><span>Revenue</span></div>
       <div class="nav-item" data-page="liability"><i class="fa-solid fa-hand-holding-dollar"></i><span>Crew Liability</span></div>
@@ -315,6 +356,17 @@ body.no-scroll{overflow:hidden;}
       </div>
     </div>
     <div class="header-actions">
+      <button class="theme-toggle-btn" id="themeToggleBtn" type="button" aria-label="Toggle dark mode" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></button>
+      <div class="notif-wrap" id="notifWrap">
+        <button class="notif-btn" id="notifBtn" type="button" aria-label="Notifications">
+          <i class="fa-solid fa-bell"></i>
+          <span class="notif-count" id="notifCount" style="display:none;">0</span>
+        </button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="notif-dropdown-head">Notifications</div>
+          <div class="notif-dropdown-body" id="notifDropdownBody"><div class="notif-empty">You're all caught up.</div></div>
+        </div>
+      </div>
       <span class="role-badge" id="roleBadgeText">ADMIN</span>
     </div>
   </header>
@@ -324,7 +376,6 @@ body.no-scroll{overflow:hidden;}
   <main class="main">
 
     <section class="page active" id="page-dashboard">
-      <div id="dashAlerts"></div>
       <div class="stats" id="dashStats"></div>
       <div class="card">
         <div class="panel-head"><h2>Video Editing Pipeline</h2><p>Videos currently at each stage, across all shoot dates.</p></div>
@@ -427,7 +478,7 @@ body.no-scroll{overflow:hidden;}
           <h2>Calendar</h2>
           <div class="cal-nav-row">
             <button class="mini-btn" type="button" onclick="calChangeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
-            <strong id="calMonthLabel" style="min-width:130px;text-align:center;font-family:var(--font-head);color:var(--primary);"></strong>
+            <strong id="calMonthLabel" style="min-width:130px;text-align:center;font-family:var(--font-head);color:var(--heading);"></strong>
             <button class="mini-btn" type="button" onclick="calChangeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
             <button class="btn btn-secondary" type="button" onclick="calGoToday()">Today</button>
             <button class="mini-btn" type="button" id="taskFilterDayBtn" onclick="clearDayFilter()" style="display:none;">Clear day filter <i class="fa-solid fa-xmark"></i></button>
@@ -520,18 +571,13 @@ body.no-scroll{overflow:hidden;}
 
     <section class="page" id="page-content">
       <div class="card panel" id="addContentCard">
-        <div class="panel-head"><h2><i class="fa-solid fa-photo-film"></i> Upload Content</h2><p>Content team only — brief the shoot with the game, props needed, a reference video, the target shoot date, and the script.</p></div>
+        <div class="panel-head"><h2><i class="fa-solid fa-photo-film"></i> Upload Content</h2><p>Content team only — brief the shoot with the game, props needed, a reference video, the target shoot date, and the script. Once submitted, it goes to the Direction team, who mark it done after the shoot wraps.</p></div>
         <form id="contentForm" class="form-grid">
           <input type="hidden" id="contentEditId">
           <div class="field"><label>Game Name</label><input class="input" id="contentGameName" required placeholder="e.g. Truth or Dare"></div>
           <div class="field"><label>Shoot Date</label><input class="input" type="date" id="contentShootDate" required></div>
-          <div class="field"><label>Status</label>
-            <select class="input" id="contentStatus">
-              <option value="Pending">Pending</option>
-              <option value="Shoot done">Shoot done</option>
-            </select>
-          </div>
           <div class="field" style="grid-column:1/-1;"><label>Props Required</label><input class="input" id="contentProps" placeholder="e.g. Dice, blindfold, buzzer"></div>
+          <div class="field" style="grid-column:1/-1;"><label>Additional Info</label><textarea class="input" id="contentAdditionalInfo" rows="2" placeholder="Any other notes for the shoot..."></textarea></div>
           <div class="field" style="grid-column:1/-1;"><label>Reference Video Link</label><input class="input" type="url" id="contentRefLink" placeholder="https://..."></div>
           <div class="field" style="grid-column:1/-1;">
             <label>Script (Attachment)</label>
@@ -546,8 +592,20 @@ body.no-scroll{overflow:hidden;}
       </div>
 
       <div class="card panel">
-        <div class="panel-head"><h2>Content History</h2><p>Visible to everyone. Anyone can leave a suggestion on a game — only the Content team and admin can edit or remove entries.</p></div>
+        <div class="panel-head"><h2>Content History</h2><p>Visible to everyone. Anyone can leave a suggestion on a game — only the Content team and admin can edit or remove entries. Status is set by the Direction team.</p></div>
         <div id="contentTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-direction">
+      <div class="card panel">
+        <div class="panel-head"><h2><i class="fa-solid fa-location-dot"></i> Shoot Locations</h2><p>Auto-filled whenever the Location Manager schedules a shoot in Tasks &amp; Calendar — shows the date and location for each one.</p></div>
+        <div id="directionLocationsWrap"></div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head"><h2><i class="fa-solid fa-clapperboard"></i> Shoot Review</h2><p>Direction team only — review each content brief and mark the shoot done once it wraps. Marking a shoot done sends it on to the Video Editing team.</p></div>
+        <div id="directionTableWrap"></div>
       </div>
     </section>
 
@@ -810,9 +868,9 @@ let _expensesVisible = [];
 let _tasks = [];
 
 // ─── DEPARTMENTS ───
-const DEPARTMENTS = ['Content','Video Editing','Asset Manager','Finance and Operations','Location Manager'];
+const DEPARTMENTS = ['Content','Direction','Video Editing','Asset Manager','Finance and Operations','Location Manager'];
 const DEPT_CLASS = {
-  'Content':'content', 'Video Editing':'video', 'Asset Manager':'asset',
+  'Content':'content', 'Direction':'direction', 'Video Editing':'video', 'Asset Manager':'asset',
   'Finance and Operations':'finance', 'Location Manager':'location'
 };
 function deptClass(d){ return DEPT_CLASS[d] || 'none'; }
@@ -856,14 +914,16 @@ function isAssetManager(){ return inDept('Asset Manager'); }
 function isLocationManager(){ return inDept('Location Manager'); }
 function isVideoEditing(){ return inDept('Video Editing'); }
 function isContentTeam(){ return inDept('Content'); }
+function isDirectionTeam(){ return inDept('Direction'); }
 // Can the current user add/edit/delete within a given section?
 function canManage(section){
   if (roleIsAdmin()) return true;
   if (section === 'users') return false; // Users is always admin-only.
-  // Video Editing and Content sections are exclusive to their own department
-  // (and admin) — deliberately NOT included in the Finance/Ops blanket rule.
+  // Video Editing, Content, and Direction sections are exclusive to their own
+  // department (and admin) — deliberately NOT included in the Finance/Ops blanket rule.
   if (section === 'videoediting') return isVideoEditing();
   if (section === 'content') return isContentTeam();
+  if (section === 'direction') return isDirectionTeam();
   if (isFinanceOps()) return true;
   if (section === 'assets') return isAssetManager();
   if (section === 'locations') return isLocationManager();
@@ -874,6 +934,7 @@ function canViewPage(section){
   if (roleIsAdmin()) return true;
   if (section === 'users') return false;
   if (section === 'videoediting') return isVideoEditing();
+  if (section === 'direction') return isDirectionTeam();
   if (isFinanceOps()) return true;
   if (section === 'locations') return isLocationManager();
   return false;
@@ -889,6 +950,7 @@ const pageConfig = {
   tasks:{t:'Tasks & Calendar', s:'Assign and track tasks across departments.'},
   videoediting:{t:'Video Editing', s:'Track videos shot on each scheduled shoot date, through to posting.'},
   content:{t:'Content', s:'Upload game briefs — props, reference video, shoot date, and script.'},
+  direction:{t:'Direction', s:'Review content briefs and mark a shoot done once it wraps — this sends it on to Video Editing.'},
   expenses:{t:'Expenses', s:'Log spends with bills attached.'},
   revenue:{t:'Revenue', s:'Income from YouTube and Instagram.'},
   liability:{t:'Crew Liability', s:'Amounts owed to crew members.'},
@@ -1023,6 +1085,7 @@ function launchAdminApp(user, profile){
   const badge = document.getElementById('roleBadgeText');
   badge.textContent = isAdmin ? 'ADMIN' : 'CREW';
   badge.classList.toggle('role-crew', !isAdmin);
+  refreshNotifications();
   const createLoginCard = document.getElementById('createLoginCard');
   if (createLoginCard) createLoginCard.style.display = isAdmin ? '' : 'none';
 
@@ -1036,6 +1099,7 @@ function launchAdminApp(user, profile){
   document.getElementById('navClients').style.display = canViewPage('clients') ? '' : 'none';
   document.getElementById('navPnl').style.display = canViewPage('pnl') ? '' : 'none';
   document.getElementById('navVideoEditing').style.display = canViewPage('videoediting') ? '' : 'none';
+  document.getElementById('navDirection').style.display = canViewPage('direction') ? '' : 'none';
   // Content history is visible to everyone; only the upload/edit form is restricted.
   document.getElementById('addContentCard').style.display = canManage('content') ? '' : 'none';
   document.getElementById('addAssetCard').style.display = canManage('assets') ? '' : 'none';
@@ -1054,6 +1118,8 @@ function launchAdminApp(user, profile){
   const backdrop = document.getElementById('sidebarBackdrop');
   hamburger.addEventListener('click', openSidebarDrawer);
   backdrop.addEventListener('click', closeSidebarDrawer);
+  wireNotifDropdown();
+  syncThemeIcon();
   window.addEventListener('resize', ()=>{ if (window.innerWidth > 880) closeSidebarDrawer(); });
   document.getElementById('expDate').value = todayISO();
   document.getElementById('revDate').value = todayISO();
@@ -1080,7 +1146,7 @@ function launchAdminApp(user, profile){
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  const restrictedPages = ['users','items','locations','clients','pnl','videoediting'];
+  const restrictedPages = ['users','items','locations','clients','pnl','videoediting','direction'];
   if (restrictedPages.includes(name) && !canViewPage(name)) name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -1093,7 +1159,7 @@ window.showAdminPage = function(name){
     dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
     locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage, provisions: loadProvisionsPage,
-    pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage
+    pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage, direction: loadDirectionPage
   };
   if (loaders[name]) loaders[name]();
 };
@@ -1154,7 +1220,6 @@ async function ensureLocationsLoaded(){
 async function loadDashboardPage(){
   const wrap = document.getElementById('dashStats');
   const videoWrap = document.getElementById('dashVideoStats');
-  const alertsEl = document.getElementById('dashAlerts');
   wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
   try {
     const [revSnap, expSnap, assetSnap, liabSnap, paySnap, provSnap] = await Promise.all([
@@ -1206,36 +1271,89 @@ async function loadDashboardPage(){
         <div class="stat-value">${pipelineCounts[s]||0}</div>
       </div>`).join('');
 
-    // Alerts: pending expense approvals (admin only), crew with a balance due, assets low on stock, tasks assigned to me
+    // Notifications now live in the top navigation bell — see refreshNotifications().
+    refreshNotifications();
+  } catch(err) {
+    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading dashboard.</h3><p>${escHtml(err.message)}</p></div>`;
+  }
+}
+
+// ═══════════════════ THEME (light/dark toggle) ═══════════════════
+// The actual data-theme attribute is set as early as possible by an inline
+// script in <head> (to avoid a flash of the wrong theme on load). This just
+// keeps the toggle icon/button in sync and handles switching + persistence.
+function syncThemeIcon(){
+  const icon = document.getElementById('themeToggleIcon');
+  if (!icon) return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+window.toggleTheme = function(){
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = isDark ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('ada-theme', next); } catch(e) {}
+  syncThemeIcon();
+};
+
+// ═══════════════════ NOTIFICATIONS (top nav bell) ═══════════════════
+// Same "needs attention" checks that used to live on the dashboard: pending
+// expense approvals (admin only), crew with a balance due, assets low on
+// stock, and tasks assigned to me/my department. Runs independently of the
+// dashboard page so the bell stays current no matter what page you're on.
+async function refreshNotifications(){
+  const countEl = document.getElementById('notifCount');
+  const bodyEl = document.getElementById('notifDropdownBody');
+  if (!countEl || !bodyEl) return;
+  try {
+    const [expSnap, assetSnap, taskSnap] = await Promise.all([
+      getDocs(collection(db,'ada_expenses')), getDocs(collection(db,'ada_assets')), getDocs(collection(db,'ada_tasks'))
+    ]);
+    const allExpenses = expSnap.docs.map(d=>d.data());
+    const assets = assetSnap.docs.map(d=>d.data());
+    const allTasks = taskSnap.docs.map(d=>d.data());
     const balances = await computeCrewBalances();
     const crewWithDue = balances.filter(b=>b.balance > 0);
     const lowStock = assets.filter(a=>Number(a.quantity||0) <= 1);
     const pendingExpenses = allExpenses.filter(x=>expenseStatus(x)==='pending');
-    const taskSnap = await getDocs(collection(db,'ada_tasks'));
-    const allTasks = taskSnap.docs.map(d=>d.data());
     const myUid = window.adaCurrentUser?.uid;
     const myDepts = userDepts(window.adaProfile);
     const myPendingTasks = allTasks.filter(t => (t.status||'pending')==='pending' && (t.assignedToUid===myUid || (!t.assignedToUid && taskDepts(t).some(d=>myDepts.includes(d)))));
-    const alertItems = [];
+    const items = [];
     if (canManage('expenses') && pendingExpenses.length) {
-      alertItems.push(`<div class="alert-item" onclick="showAdminPage('expenses')"><i class="fa-solid fa-triangle-exclamation"></i> ${pendingExpenses.length} expense${pendingExpenses.length>1?'s':''} awaiting your approval</div>`);
+      items.push(`<div class="notif-item" onclick="showAdminPage('expenses');closeNotifDropdown();"><i class="fa-solid fa-triangle-exclamation"></i><span>${pendingExpenses.length} expense${pendingExpenses.length>1?'s':''} awaiting your approval</span></div>`);
     }
     if (myPendingTasks.length) {
-      alertItems.push(`<div class="alert-item" onclick="showAdminPage('tasks')"><i class="fa-solid fa-list-check"></i> ${myPendingTasks.length} task${myPendingTasks.length>1?'s':''} assigned to you or your department</div>`);
+      items.push(`<div class="notif-item" onclick="showAdminPage('tasks');closeNotifDropdown();"><i class="fa-solid fa-list-check"></i><span>${myPendingTasks.length} task${myPendingTasks.length>1?'s':''} assigned to you or your department</span></div>`);
     }
     if (crewWithDue.length) {
-      alertItems.push(`<div class="alert-item" onclick="showAdminPage('liability')"><i class="fa-solid fa-triangle-exclamation"></i> ${crewWithDue.length} crew member${crewWithDue.length>1?'s':''} with a balance due</div>`);
+      items.push(`<div class="notif-item" onclick="showAdminPage('liability');closeNotifDropdown();"><i class="fa-solid fa-triangle-exclamation"></i><span>${crewWithDue.length} crew member${crewWithDue.length>1?'s':''} with a balance due</span></div>`);
     }
     if (lowStock.length) {
-      alertItems.push(`<div class="alert-item" onclick="showAdminPage('assets')"><i class="fa-solid fa-triangle-exclamation"></i> ${lowStock.length} asset${lowStock.length>1?'s':''} low on stock (1 or fewer at a location)</div>`);
+      items.push(`<div class="notif-item" onclick="showAdminPage('assets');closeNotifDropdown();"><i class="fa-solid fa-triangle-exclamation"></i><span>${lowStock.length} asset${lowStock.length>1?'s':''} low on stock (1 or fewer at a location)</span></div>`);
     }
-    alertsEl.innerHTML = alertItems.length ? `<div class="card" style="border-color:rgba(160,92,0,.3);background:var(--warn-bg);">
-      <div class="panel-head"><h2 style="color:var(--warn);font-size:1rem;"><i class="fa-solid fa-bell"></i> Needs attention</h2></div>
-      <div style="display:flex;flex-direction:column;gap:.3rem;margin-top:.6rem;">${alertItems.join('')}</div>
-    </div>` : '';
+    countEl.textContent = items.length > 99 ? '99+' : String(items.length);
+    countEl.style.display = items.length ? 'flex' : 'none';
+    bodyEl.innerHTML = items.length ? items.join('') : `<div class="notif-empty">You're all caught up.</div>`;
   } catch(err) {
-    wrap.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Error loading dashboard.</h3><p>${escHtml(err.message)}</p></div>`;
+    bodyEl.innerHTML = `<div class="notif-empty">Couldn't load notifications.</div>`;
   }
+}
+window.closeNotifDropdown = function(){
+  document.getElementById('notifDropdown')?.classList.remove('open');
+};
+function wireNotifDropdown(){
+  const btn = document.getElementById('notifBtn');
+  const dropdown = document.getElementById('notifDropdown');
+  const wrap = document.getElementById('notifWrap');
+  if (!btn || !dropdown || !wrap) return;
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', (e)=>{
+    if (!wrap.contains(e.target)) dropdown.classList.remove('open');
+  });
 }
 
 async function computeCrewBalances(){
@@ -1898,17 +2016,17 @@ function shootTasksList(){
 }
 
 // Shoot dates come from either a scheduled shoot task, or from a content brief
-// the Content team has marked "Shoot done" — whichever exists.
+// the Direction team has marked "Shoot done" — whichever exists.
 function veDatesList(){
   const taskDates = shootTasksList().map(t=>t.date);
   const contentDates = _content.filter(c=>c.status==='Shoot done').map(c=>c.shootDate);
   return [...new Set([...taskDates, ...contentDates].filter(Boolean))].sort((a,b)=>b.localeCompare(a));
 }
 
-// Auto-loads content marked "Shoot done" into the Video Editing section, one
-// video entry per content brief, mapped by shoot date. Only creates an entry
-// the first time (tracked via contentId) — after that the Video Editing team
-// owns the title/status/link and edits from ada_videos directly.
+// Auto-loads content marked "Shoot done" by the Direction team into the Video
+// Editing section, one video entry per content brief, mapped by shoot date.
+// Only creates an entry the first time (tracked via contentId) — after that
+// the Video Editing team owns the title/status/link and edits from ada_videos directly.
 async function syncContentToVideos(){
   const doneContent = _content.filter(c=>c.status==='Shoot done');
   const linkedContentIds = new Set(_videos.filter(v=>v.contentId).map(v=>v.contentId));
@@ -2136,6 +2254,7 @@ function renderContentTable(){
             <span class="pill ${contentStatusPillClass(c.status)}">${escHtml(c.status||'Pending')}</span>
             <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
             ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
+            ${c.additionalInfo ? `<span><i class="fa-solid fa-circle-info"></i> ${escHtml(c.additionalInfo)}</span>` : ''}
             ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
             ${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-file-lines"></i> Script</button>` : `<span><i class="fa-solid fa-file-circle-xmark"></i> No script</span>`}
           </div>
@@ -2231,8 +2350,8 @@ window.editContent = function(id){
   _editingContentId = id;
   document.getElementById('contentGameName').value = c.gameName || '';
   document.getElementById('contentShootDate').value = c.shootDate || '';
-  document.getElementById('contentStatus').value = c.status || 'Pending';
   document.getElementById('contentProps').value = c.props || '';
+  document.getElementById('contentAdditionalInfo').value = c.additionalInfo || '';
   document.getElementById('contentRefLink').value = c.refLink || '';
   _pendingScript = null;
   const dropEl = document.getElementById('contentScriptDrop');
@@ -2250,7 +2369,6 @@ window.cancelContentEdit = function(){
   _pendingScript = null;
   document.getElementById('contentForm').reset();
   document.getElementById('contentShootDate').value = todayISO();
-  document.getElementById('contentStatus').value = 'Pending';
   const dropEl = document.getElementById('contentScriptDrop');
   dropEl.classList.remove('has-file');
   dropEl.innerHTML = '<i class="fa-solid fa-file-arrow-up"></i> Click to attach the script — PDF, Word, text, or image (max 700 KB)';
@@ -2271,18 +2389,22 @@ async function onContentFormSubmit(e){
   const editing = _editingContentId;
   const gameName = document.getElementById('contentGameName').value.trim();
   const shootDate = document.getElementById('contentShootDate').value;
-  const status = document.getElementById('contentStatus').value;
   const props = document.getElementById('contentProps').value.trim();
+  const additionalInfo = document.getElementById('contentAdditionalInfo').value.trim();
   const refLink = document.getElementById('contentRefLink').value.trim();
   if (!gameName || !shootDate) { showToast('Game name and shoot date are required.', true); return; }
   const btn = document.getElementById('contentSubmitBtn');
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
   try {
-    const data = { gameName, shootDate, status, props, refLink };
+    // Status (Pending / Shoot done) is owned by the Direction team from here on —
+    // the Content form no longer sets or changes it. New briefs start Pending;
+    // edits to an existing brief leave its current status untouched.
+    const data = { gameName, shootDate, props, additionalInfo, refLink };
     if (_pendingScript) { data.scriptBase64 = _pendingScript.base64; data.scriptFileName = _pendingScript.fileName; data.scriptFileType = _pendingScript.fileType; }
     if (editing) {
       await updateDoc(doc(db,'ada_content',editing), data);
     } else {
+      data.status = 'Pending';
       data.createdAt = new Date().toISOString();
       data.createdByUid = window.adaCurrentUser?.uid || '';
       data.createdByName = window.adaProfile?.name || window.adaProfile?.email || 'Someone';
@@ -2291,13 +2413,117 @@ async function onContentFormSubmit(e){
     showToast(editing ? 'Content updated.' : 'Content added.');
     cancelContentEdit();
     await loadContentPage();
-    // If this content is marked Shoot done, push it into Video Editing right away
+  } catch(err) { showToast('Error: '+err.message, true); }
+  finally { btn.disabled = false; }
+}
+
+// ─── DIRECTION ───
+// Direction team reviews content briefs uploaded by the Content team and marks
+// each shoot done once it wraps. Marking a shoot done is what pushes that
+// content brief into the Video Editing queue (see syncContentToVideos()).
+// Only the Direction team (and admin) can change this status — see canManage('direction').
+async function loadDirectionPage(){
+  await ensureUsersLoaded();
+  await ensureContentLoaded();
+  await ensureTasksLoaded();
+  renderDirectionLocationsTable();
+  renderDirectionTable();
+}
+
+function renderDirectionLocationsTable(){
+  const wrap = document.getElementById('directionLocationsWrap');
+  const shoots = shootTasksList(); // isShoot:true tasks, newest date first — see Tasks & Calendar
+  if (!shoots.length) { wrap.innerHTML = `<div class="empty"><h3>No shoots scheduled yet.</h3><p>Once the Location Manager schedules a shoot in Tasks &amp; Calendar, it'll show up here with its date and location.</p></div>`; return; }
+  const todayStr = todayISO();
+  wrap.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Location</th><th>Shoot Title</th><th></th></tr></thead>
+    <tbody>${shoots.map(t=>`
+      <tr>
+        <td>${formatDate(t.date)}</td>
+        <td><span class="pill pill-dept-location"><i class="fa-solid fa-location-dot"></i> ${escHtml(t.locationName || 'No location set')}</span></td>
+        <td>${escHtml(t.title||'')}</td>
+        <td>${t.date < todayStr ? `<span class="pill pill-dept-none">Past</span>` : `<span class="pill pill-dept-video">Upcoming</span>`}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+function renderDirectionTable(){
+  const wrap = document.getElementById('directionTableWrap');
+  const canEdit = canManage('direction');
+  if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs yet.</h3><p>Nothing has been uploaded by the Content team yet.</p></div>`; return; }
+  const list = _content.slice().sort((a,b)=>(a.status==='Shoot done')-(b.status==='Shoot done') || (a.shootDate||'').localeCompare(b.shootDate||''));
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>`
+    <div class="task-card">
+      <div class="task-top">
+        <div>
+          <div class="task-title">${escHtml(c.gameName)}</div>
+          <div class="task-meta">
+            <span class="pill ${contentStatusPillClass(c.status)}">${escHtml(c.status||'Pending')}</span>
+            <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
+            ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
+            ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
+            ${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-file-lines"></i> Script</button>` : `<span><i class="fa-solid fa-file-circle-xmark"></i> No script</span>`}
+          </div>
+        </div>
+        ${canEdit ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          <select class="input" style="width:auto;padding:.3rem .5rem;font-size:.75rem;" onchange="updateDirectionStatus('${c.id}', this.value)">
+            ${['Pending','Shoot done'].map(s=>`<option value="${s}" ${(c.status||'Pending')===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>` : ''}
+      </div>
+      <div class="task-desc">
+        <label style="font-size:.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Additional Info</label>
+        ${canEdit ? `
+          <div id="addInfoView-${c.id}" style="display:flex;gap:.5rem;align-items:flex-start;margin-top:.3rem;">
+            <p style="font-size:.83rem;color:var(--text-2);flex:1;">${c.additionalInfo ? escHtml(c.additionalInfo) : 'No additional info yet.'}</p>
+            <button class="mini-btn" style="flex-shrink:0;" onclick="toggleDirectionAddInfoEdit('${c.id}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
+          </div>
+          <div id="addInfoEdit-${c.id}" style="display:none;gap:.5rem;margin-top:.35rem;align-items:flex-start;">
+            <textarea class="input" id="dirAddInfo-${c.id}" rows="2" placeholder="Any other notes for the shoot..." style="flex:1;">${escHtml(c.additionalInfo||'')}</textarea>
+            <button class="mini-btn" style="flex-shrink:0;color:var(--success);" onclick="saveDirectionAdditionalInfo('${c.id}')" title="Save"><i class="fa-solid fa-check"></i></button>
+          </div>` : `
+          <p style="font-size:.83rem;color:var(--text-2);margin-top:.25rem;">${c.additionalInfo ? escHtml(c.additionalInfo) : 'No additional info yet.'}</p>`}
+      </div>
+    </div>`
+  ).join('') + `</div>`;
+}
+
+window.toggleDirectionAddInfoEdit = function(id){
+  const viewEl = document.getElementById('addInfoView-'+id);
+  const editEl = document.getElementById('addInfoEdit-'+id);
+  if (!viewEl || !editEl) return;
+  viewEl.style.display = 'none';
+  editEl.style.display = 'flex';
+  document.getElementById('dirAddInfo-'+id)?.focus();
+};
+
+window.saveDirectionAdditionalInfo = async function(id){
+  if (!canManage('direction')) { showToast('Only the Direction team can edit this.', true); return; }
+  const textarea = document.getElementById('dirAddInfo-'+id);
+  if (!textarea) return;
+  const additionalInfo = textarea.value.trim();
+  try {
+    await updateDoc(doc(db,'ada_content',id), { additionalInfo });
+    showToast('Additional info updated.');
+    await ensureContentLoaded();
+    renderDirectionTable();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+window.updateDirectionStatus = async function(id, newStatus){
+  if (!canManage('direction')) { showToast('Only the Direction team can update shoot status.', true); return; }
+  try {
+    await updateDoc(doc(db,'ada_content',id), { status: newStatus });
+    showToast('Status updated.');
+    await ensureContentLoaded();
+    renderDirectionTable();
+    // If this shoot was just marked done, push it into Video Editing right away
     // so the video editing team sees it without needing to revisit this page.
     await ensureVideosLoaded();
     await syncContentToVideos();
   } catch(err) { showToast('Error: '+err.message, true); }
-  finally { btn.disabled = false; }
-}
+};
 
 window.toggleTaskStatus = async function(id){
   const t = _tasks.find(x=>x.id===id);
