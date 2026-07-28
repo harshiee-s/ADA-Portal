@@ -130,6 +130,24 @@ a{text-decoration:none;color:inherit;}
 .theme-toggle-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-2);background:var(--surface);border:1px solid var(--border);transition:var(--t);font-size:.9rem;}
 .theme-toggle-btn:hover{color:var(--heading);background:var(--surface-2);}
 
+.universal-search-wrap{position:relative;flex:1 1 auto;max-width:420px;min-width:120px;}
+.universal-search-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:.82rem;pointer-events:none;}
+.universal-search-input{width:100%;padding:.55rem .9rem .55rem 2.2rem;border-radius:var(--r-pill);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.83rem;transition:var(--t);}
+.universal-search-input:focus{border-color:var(--gold-border);box-shadow:0 0 0 3px var(--gold-soft);}
+.universal-search-clear{position:absolute;right:.6rem;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--text-3);background:transparent;font-size:.7rem;}
+.universal-search-clear:hover{color:var(--heading);background:var(--surface-2);}
+.universal-search-results{position:absolute;top:calc(100% + 8px);left:0;right:0;max-height:420px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-md);z-index:60;display:none;}
+.universal-search-results.open{display:block;}
+.usr-group-label{padding:.55rem 1rem .3rem;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);}
+.usr-item{display:flex;flex-direction:column;gap:1px;padding:.5rem 1rem;cursor:pointer;transition:var(--t);border-top:1px solid var(--border-2);}
+.usr-item:first-child{border-top:none;}
+.usr-item:hover{background:var(--gold-soft);}
+.usr-item-title{font-size:.85rem;font-weight:600;color:var(--heading);}
+.usr-item-meta{font-size:.74rem;color:var(--text-3);}
+.usr-empty{padding:1.2rem 1rem;text-align:center;font-size:.82rem;color:var(--text-3);}
+.usr-loading{padding:1.2rem 1rem;text-align:center;font-size:.82rem;color:var(--text-3);}
+@media (max-width:880px){ .universal-search-wrap{display:none;} }
+
 .btn{display:inline-flex;align-items:center;gap:.45rem;padding:.55rem 1rem;font-size:.82rem;font-weight:600;border-radius:var(--r-pill);border:1px solid transparent;transition:var(--t);white-space:nowrap;}
 .btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(10,22,40,.25);}
 .btn-primary:hover{background:var(--primary-mid);transform:translateY(-1px);}
@@ -339,6 +357,7 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="payments"><i class="fa-solid fa-money-bill-transfer"></i><span>Crew Payments</span></div>
       <div class="nav-item" data-page="provisions"><i class="fa-solid fa-piggy-bank"></i><span>Provisions</span></div>
       <div class="nav-item" data-page="pnl" id="navPnl"><i class="fa-solid fa-chart-line"></i><span>P&amp;L Report</span></div>
+      <div class="nav-item" data-page="activitylog" id="navActivityLog"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity Log</span></div>
       <div class="nav-item logout-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
     </div>
     <div class="sidebar-footer">
@@ -354,6 +373,12 @@ body.no-scroll{overflow:hidden;}
         <h1 id="pageTitle">Dashboard</h1>
         <p id="pageSubtitle">Overview of crew finances and assets.</p>
       </div>
+    </div>
+    <div class="universal-search-wrap" id="universalSearchWrap">
+      <i class="fa-solid fa-magnifying-glass universal-search-icon"></i>
+      <input class="universal-search-input" id="universalSearchInput" type="text" placeholder="Search everything…" autocomplete="off" />
+      <button class="universal-search-clear" id="universalSearchClear" type="button" aria-label="Clear search" style="display:none;"><i class="fa-solid fa-xmark"></i></button>
+      <div class="universal-search-results" id="universalSearchResults"></div>
     </div>
     <div class="header-actions">
       <button class="theme-toggle-btn" id="themeToggleBtn" type="button" aria-label="Toggle dark mode" onclick="toggleTheme()"><i class="fa-solid fa-moon" id="themeToggleIcon"></i></button>
@@ -592,7 +617,16 @@ body.no-scroll{overflow:hidden;}
       </div>
 
       <div class="card panel">
-        <div class="panel-head"><h2>Content History</h2><p>Visible to everyone. Anyone can leave a suggestion on a game — only the Content team and admin can edit or remove entries. Status is set by the Direction team.</p></div>
+        <div class="panel-head">
+          <h2>Content History</h2>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <input class="input" type="date" id="contentFilterFrom" style="width:auto;" onchange="renderContentTable()">
+            <span style="font-size:.8rem;color:var(--text-3);">to</span>
+            <input class="input" type="date" id="contentFilterTo" style="width:auto;" onchange="renderContentTable()">
+            <button class="btn btn-secondary" onclick="document.getElementById('contentFilterFrom').value='';document.getElementById('contentFilterTo').value='';renderContentTable();"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
+          </div>
+        </div>
+        <p style="font-size:.83rem;color:var(--text-2);margin-bottom:.6rem;">Visible to everyone. Anyone can leave a suggestion on a game — only the Content team and admin can edit or remove entries. Status is set by the Direction team.</p>
         <div id="contentTableWrap"></div>
       </div>
     </section>
@@ -604,7 +638,16 @@ body.no-scroll{overflow:hidden;}
       </div>
 
       <div class="card panel">
-        <div class="panel-head"><h2><i class="fa-solid fa-clapperboard"></i> Shoot Review</h2><p>Direction team only — review each content brief and mark the shoot done once it wraps. Marking a shoot done sends it on to the Video Editing team.</p></div>
+        <div class="panel-head">
+          <h2><i class="fa-solid fa-clapperboard"></i> Shoot Review</h2>
+          <div class="field" style="max-width:340px;margin:0;">
+            <label>Shoot Date</label>
+            <select class="input" id="dirShootDateSelect" onchange="onDirShootDateChange()">
+              <option value="">All shoot dates</option>
+            </select>
+          </div>
+        </div>
+        <p style="font-size:.83rem;color:var(--text-2);margin-bottom:.6rem;">Direction team only — review each content brief and mark the shoot done once it wraps. Marking a shoot done sends it on to the Video Editing team. Pick a shoot date above to focus on just that day.</p>
         <div id="directionTableWrap"></div>
       </div>
     </section>
@@ -795,6 +838,26 @@ body.no-scroll{overflow:hidden;}
       </div>
     </section>
 
+    <section class="page" id="page-activitylog">
+      <div class="card panel">
+        <div class="panel-head">
+          <h2><i class="fa-solid fa-clock-rotate-left"></i> Activity Log</h2>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <select class="input" id="logFilterType" style="width:auto;" onchange="renderActivityLogTable()">
+              <option value="">All sections</option>
+            </select>
+            <input class="input" type="date" id="logFrom" style="width:auto;" onchange="renderActivityLogTable()">
+            <span style="font-size:.8rem;color:var(--text-3);">to</span>
+            <input class="input" type="date" id="logTo" style="width:auto;" onchange="renderActivityLogTable()">
+            <input class="input" id="logSearch" placeholder="Search by name or detail…" style="width:auto;" oninput="renderActivityLogTable()">
+            <button class="btn btn-secondary" onclick="loadActivityLogPage()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          </div>
+        </div>
+        <p style="font-size:.8rem;color:var(--text-2);margin-bottom:.6rem;">A record of who created, updated, or deleted things across the portal — newest first.</p>
+        <div id="activityLogTableWrap"></div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -864,8 +927,30 @@ window.__creatingAdmin = false;
 window.__adminLaunched = false;
 let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[], _provisions=[], _videos=[], _content=[];
 let veState = { selectedShootDate: '' };
+let dirState = { selectedShootDate: '' };
 let _expensesVisible = [];
 let _tasks = [];
+let _activityLog = [];
+
+// ─── ACTIVITY LOG ───
+// Fire-and-forget audit trail: every meaningful create/update/delete across the
+// portal calls this so admins can see who changed what, and when, on the
+// Activity Log page. Failures here are logged but never block the user's action.
+async function logActivity(action, entityType, label, extra){
+  try {
+    const id = 'act_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    await setDoc(doc(db,'ada_activity_log',id), {
+      action, entityType, label: label || '', extra: extra || '',
+      uid: window.adaCurrentUser?.uid || '',
+      userName: window.adaProfile?.name || window.adaProfile?.email || 'Someone',
+      timestamp: new Date().toISOString()
+    });
+  } catch(err) { console.error('Activity log error:', err); }
+}
+async function ensureActivityLogLoaded(){
+  const snap = await getDocs(collection(db,'ada_activity_log'));
+  _activityLog = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.timestamp||'').localeCompare(a.timestamp||''));
+}
 
 // ─── DEPARTMENTS ───
 const DEPARTMENTS = ['Content','Direction','Video Editing','Asset Manager','Finance and Operations','Location Manager'];
@@ -935,6 +1020,7 @@ function canViewPage(section){
   if (section === 'users') return false;
   if (section === 'videoediting') return isVideoEditing();
   if (section === 'direction') return isDirectionTeam();
+  if (section === 'activitylog') return false; // admin-only audit trail
   if (isFinanceOps()) return true;
   if (section === 'locations') return isLocationManager();
   return false;
@@ -956,7 +1042,8 @@ const pageConfig = {
   liability:{t:'Crew Liability', s:'Amounts owed to crew members.'},
   payments:{t:'Crew Payments', s:'Payments made to crew members.'},
   provisions:{t:'Provisions', s:'Set aside funds from available revenue into the team available balance.'},
-  pnl:{t:'P&L Report', s:'Revenue vs expenses over time.'}
+  pnl:{t:'P&L Report', s:'Revenue vs expenses over time.'},
+  activitylog:{t:'Activity Log', s:'Who changed what, and when — across the whole portal.'}
 };
 
 document.getElementById('loginForm').addEventListener('submit', async e=>{
@@ -1100,6 +1187,7 @@ function launchAdminApp(user, profile){
   document.getElementById('navPnl').style.display = canViewPage('pnl') ? '' : 'none';
   document.getElementById('navVideoEditing').style.display = canViewPage('videoediting') ? '' : 'none';
   document.getElementById('navDirection').style.display = canViewPage('direction') ? '' : 'none';
+  document.getElementById('navActivityLog').style.display = isAdmin ? '' : 'none';
   // Content history is visible to everyone; only the upload/edit form is restricted.
   document.getElementById('addContentCard').style.display = canManage('content') ? '' : 'none';
   document.getElementById('addAssetCard').style.display = canManage('assets') ? '' : 'none';
@@ -1119,6 +1207,7 @@ function launchAdminApp(user, profile){
   hamburger.addEventListener('click', openSidebarDrawer);
   backdrop.addEventListener('click', closeSidebarDrawer);
   wireNotifDropdown();
+  wireUniversalSearch();
   syncThemeIcon();
   window.addEventListener('resize', ()=>{ if (window.innerWidth > 880) closeSidebarDrawer(); });
   document.getElementById('expDate').value = todayISO();
@@ -1146,7 +1235,7 @@ function launchAdminApp(user, profile){
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  const restrictedPages = ['users','items','locations','clients','pnl','videoediting','direction'];
+  const restrictedPages = ['users','items','locations','clients','pnl','videoediting','direction','activitylog'];
   if (restrictedPages.includes(name) && !canViewPage(name)) name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -1159,7 +1248,8 @@ window.showAdminPage = function(name){
     dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
     locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage, provisions: loadProvisionsPage,
-    pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage, direction: loadDirectionPage
+    pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage, direction: loadDirectionPage,
+    activitylog: loadActivityLogPage
   };
   if (loaders[name]) loaders[name]();
 };
@@ -1459,6 +1549,7 @@ window.toggleUserRole = async function(uid, newRole){
   try {
     await updateDoc(doc(db,'ada_users',uid), { role:newRole });
     showToast(newRole==='admin' ? 'User promoted to Admin.' : 'User demoted to Crew.');
+    logActivity('updated','users', _users.find(u=>u.id===uid)?.name || uid, `Role changed to ${newRole}`);
     loadUsersPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 };
@@ -1471,6 +1562,7 @@ window.onUserDeptCheckChange = async function(uid, cb){
   try {
     await updateDoc(doc(db,'ada_users',uid), { departments });
     showToast('Departments updated.');
+    logActivity('updated','users', _users.find(u=>u.id===uid)?.name || uid, `Departments set to ${departments.join(', ')||'none'}`);
     _users = _users.map(u=>u.id===uid ? {...u, departments} : u);
     if (window.adaProfile && window.adaProfile.uid === uid) window.adaProfile.departments = departments;
   } catch(err) { showToast('Error: '+err.message, true); }
@@ -1480,6 +1572,7 @@ window.toggleUserStatus = async function(uid, newStatus){
   try {
     await updateDoc(doc(db,'ada_users',uid), { status:newStatus });
     showToast('Status updated.');
+    logActivity('updated','users', _users.find(u=>u.id===uid)?.name || uid, `Status set to ${newStatus}`);
     loadUsersPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 };
@@ -1512,6 +1605,7 @@ async function onUserFormSubmit(e){
     document.getElementById('userForm').reset();
     renderUserFormDeptChecks();
     showToast(`Login created for ${name}.`);
+    logActivity('created','users', name, `Role: ${role}${departments.length?', Dept: '+departments.join(', '):''}`);
     loadUsersPage();
   } catch(err) {
     let msg = err.message;
@@ -1547,12 +1641,14 @@ async function onItemFormSubmit(e){
     await setDoc(doc(db,'ada_items',id), { name, category, createdAt:new Date().toISOString() });
     document.getElementById('itemForm').reset();
     showToast('Item added.');
+    logActivity('created','items', name, category);
     loadItemsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 }
 window.deleteItem = async function(id){
   if (!confirm('Delete this item? Existing asset records referencing it will keep their stored name.')) return;
-  try { await deleteDoc(doc(db,'ada_items',id)); showToast('Item deleted.'); loadItemsPage(); }
+  const itemName = _items.find(i=>i.id===id)?.name || id;
+  try { await deleteDoc(doc(db,'ada_items',id)); showToast('Item deleted.'); logActivity('deleted','items', itemName); loadItemsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -1578,12 +1674,14 @@ async function onLocationFormSubmit(e){
     await setDoc(doc(db,'ada_locations',id), { name, createdAt:new Date().toISOString() });
     document.getElementById('locationForm').reset();
     showToast('Location added.');
+    logActivity('created','locations', name);
     loadLocationsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 }
 window.deleteLocation = async function(id){
   if (!confirm('Delete this location?')) return;
-  try { await deleteDoc(doc(db,'ada_locations',id)); showToast('Location deleted.'); loadLocationsPage(); }
+  const locName = _locations.find(l=>l.id===id)?.name || id;
+  try { await deleteDoc(doc(db,'ada_locations',id)); showToast('Location deleted.'); logActivity('deleted','locations', locName); loadLocationsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -1608,12 +1706,14 @@ async function onClientFormSubmit(e){
     await setDoc(doc(db,'ada_clients',id), { name, createdAt:new Date().toISOString() });
     document.getElementById('clientForm').reset();
     showToast('Client added.');
+    logActivity('created','clients', name);
     loadClientsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 }
 window.deleteClient = async function(id){
   if (!confirm('Delete this client? Expenses and revenue already tagged to it will keep their stored name.')) return;
-  try { await deleteDoc(doc(db,'ada_clients',id)); showToast('Client deleted.'); loadClientsPage(); }
+  const clName = _clients.find(c=>c.id===id)?.name || id;
+  try { await deleteDoc(doc(db,'ada_clients',id)); showToast('Client deleted.'); logActivity('deleted','clients', clName); loadClientsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -1746,6 +1846,7 @@ async function onAssetFormSubmit(e){
     document.getElementById('assetForm').reset();
     resetAssetFileDrop();
     showToast('Asset saved.');
+    logActivity(existing ? 'updated' : 'created', 'assets', `${item?.name||'Item'} @ ${loc?.name||'Location'}`, `Qty ${qty}`);
     loadAssetsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 }
@@ -1757,13 +1858,14 @@ window.adjustAssetQty = async function(id){
   if (val === null) return;
   const num = Number(val);
   if (isNaN(num) || num < 0) { showToast('Enter a valid quantity.', true); return; }
-  try { await updateDoc(doc(db,'ada_assets',id), { quantity:num, updatedAt:new Date().toISOString() }); showToast('Quantity updated.'); loadAssetsPage(); }
+  try { await updateDoc(doc(db,'ada_assets',id), { quantity:num, updatedAt:new Date().toISOString() }); showToast('Quantity updated.'); logActivity('updated','assets', `${a.itemName} @ ${a.locationName}`, `Qty set to ${num}`); loadAssetsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.deleteAsset = async function(id){
   if (!canManage('assets')) { showToast('View-only access — you cannot delete assets.', true); return; }
   if (!confirm('Delete this asset record?')) return;
-  try { await deleteDoc(doc(db,'ada_assets',id)); showToast('Asset deleted.'); loadAssetsPage(); }
+  const a = _assets.find(x=>x.id===id);
+  try { await deleteDoc(doc(db,'ada_assets',id)); showToast('Asset deleted.'); logActivity('deleted','assets', a ? `${a.itemName} @ ${a.locationName}` : id); loadAssetsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -1957,6 +2059,7 @@ async function onTaskFormSubmit(e){
     document.getElementById('taskDate').value = date;
     renderTaskDepartmentChecks();
     showToast('Task created.');
+    logActivity('created','tasks', title, `Due ${date}, ${departments.join(', ')}`);
     calState.selectedDate = date;
     if (calState.current.getFullYear() !== Number(date.slice(0,4)) || calState.current.getMonth() !== Number(date.slice(5,7))-1) {
       calState.current = new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1);
@@ -1993,6 +2096,7 @@ async function onShootFormSubmit(e){
     document.getElementById('shootForm').reset();
     document.getElementById('shootDate').value = date;
     showToast('Shoot scheduled.');
+    logActivity('created','tasks', 'Shoot: '+title, `Date ${date}, Location: ${loc?.name||'—'}`);
     calState.selectedDate = date;
     if (calState.current.getFullYear() !== Number(date.slice(0,4)) || calState.current.getMonth() !== Number(date.slice(5,7))-1) {
       calState.current = new Date(Number(date.slice(0,4)), Number(date.slice(5,7))-1, 1);
@@ -2148,14 +2252,16 @@ window.cancelVideoEdit = function(){
 
 window.updateVideoStatus = async function(id, newStatus){
   if (!canManage('videoediting')) return;
-  try { await updateDoc(doc(db,'ada_videos',id), { status: newStatus }); await ensureVideosLoaded(); renderVideosTable(); showToast('Status updated.'); }
+  const vName = _videos.find(v=>v.id===id)?.title || id;
+  try { await updateDoc(doc(db,'ada_videos',id), { status: newStatus }); await ensureVideosLoaded(); renderVideosTable(); showToast('Status updated.'); logActivity('updated','videoediting', vName, `Status set to ${newStatus}`); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
 window.deleteVideo = async function(id){
   if (!canManage('videoediting')) { showToast('You do not have access to remove videos.', true); return; }
   if (!confirm('Delete this video entry?')) return;
-  try { await deleteDoc(doc(db,'ada_videos',id)); showToast('Deleted.'); await loadVideoEditingPage(); }
+  const vName = _videos.find(v=>v.id===id)?.title || id;
+  try { await deleteDoc(doc(db,'ada_videos',id)); showToast('Deleted.'); logActivity('deleted','videoediting', vName); await loadVideoEditingPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -2181,6 +2287,7 @@ async function onVideoFormSubmit(e){
       loggedByUid: window.adaCurrentUser?.uid || '', loggedByName: window.adaProfile?.name || window.adaProfile?.email || 'Someone'
     }, { merge: true });
     showToast(editId ? 'Video updated.' : 'Video added.');
+    logActivity(editId ? 'updated' : 'created', 'videoediting', title, `Shoot date ${shootDate}, Status ${status}`);
     cancelVideoEdit();
     await loadVideoEditingPage();
     document.getElementById('veShootDateSelect').value = shootDate;
@@ -2242,7 +2349,13 @@ function renderContentTable(){
   const wrap = document.getElementById('contentTableWrap');
   const canEdit = canManage('content');
   if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs uploaded yet.</h3><p>${canEdit?'Add the first one above.':'Nothing has been uploaded by the Content team yet.'}</p></div>`; return; }
-  const list = _content.slice().sort((a,b)=>(b.shootDate||'').localeCompare(a.shootDate||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
+  const from = document.getElementById('contentFilterFrom')?.value || '';
+  const to = document.getElementById('contentFilterTo')?.value || '';
+  let filtered = _content;
+  if (from) filtered = filtered.filter(c=>(c.shootDate||'') >= from);
+  if (to) filtered = filtered.filter(c=>(c.shootDate||'') <= to);
+  if (!filtered.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs in this date range.</h3><p>Try widening the filter or clearing it.</p></div>`; return; }
+  const list = filtered.slice().sort((a,b)=>(b.shootDate||'').localeCompare(a.shootDate||'') || (b.createdAt||'').localeCompare(a.createdAt||''));
   wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>{
     const suggestions = suggestionsFor(c.id);
     const expanded = _expandedContentIds.has(c.id);
@@ -2379,7 +2492,8 @@ window.cancelContentEdit = function(){
 window.deleteContent = async function(id){
   if (!canManage('content')) { showToast('You do not have access to remove content.', true); return; }
   if (!confirm('Delete this content brief?')) return;
-  try { await deleteDoc(doc(db,'ada_content',id)); showToast('Deleted.'); await loadContentPage(); }
+  const cName = _content.find(c=>c.id===id)?.gameName || id;
+  try { await deleteDoc(doc(db,'ada_content',id)); showToast('Deleted.'); logActivity('deleted','content', cName); await loadContentPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
@@ -2411,6 +2525,7 @@ async function onContentFormSubmit(e){
       await setDoc(doc(db,'ada_content','content_'+Date.now()), data);
     }
     showToast(editing ? 'Content updated.' : 'Content added.');
+    logActivity(editing ? 'updated' : 'created', 'content', gameName, `Shoot date ${shootDate}`);
     cancelContentEdit();
     await loadContentPage();
   } catch(err) { showToast('Error: '+err.message, true); }
@@ -2426,9 +2541,24 @@ async function loadDirectionPage(){
   await ensureUsersLoaded();
   await ensureContentLoaded();
   await ensureTasksLoaded();
+  const sel = document.getElementById('dirShootDateSelect');
+  const dates = [...new Set(_content.map(c=>c.shootDate).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const prevSelection = dirState.selectedShootDate;
+  sel.innerHTML = `<option value="">All shoot dates</option>` + dates.map(date=>{
+    const count = _content.filter(c=>c.shootDate===date).length;
+    const task = shootTasksList().find(t=>t.date===date);
+    return `<option value="${date}">${formatDate(date)} — ${escHtml(task?.locationName||'No location')} (${count} brief${count===1?'':'s'})</option>`;
+  }).join('');
+  if (prevSelection && dates.includes(prevSelection)) sel.value = prevSelection;
+  else dirState.selectedShootDate = '';
   renderDirectionLocationsTable();
   renderDirectionTable();
 }
+
+window.onDirShootDateChange = function(){
+  dirState.selectedShootDate = document.getElementById('dirShootDateSelect').value;
+  renderDirectionTable();
+};
 
 function renderDirectionLocationsTable(){
   const wrap = document.getElementById('directionLocationsWrap');
@@ -2452,7 +2582,10 @@ function renderDirectionTable(){
   const wrap = document.getElementById('directionTableWrap');
   const canEdit = canManage('direction');
   if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs yet.</h3><p>Nothing has been uploaded by the Content team yet.</p></div>`; return; }
-  const list = _content.slice().sort((a,b)=>(a.status==='Shoot done')-(b.status==='Shoot done') || (a.shootDate||'').localeCompare(b.shootDate||''));
+  const filterDate = dirState.selectedShootDate;
+  const filtered = filterDate ? _content.filter(c=>c.shootDate===filterDate) : _content;
+  if (!filtered.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs for ${formatDate(filterDate)}.</h3><p>Pick a different shoot date, or choose "All shoot dates".</p></div>`; return; }
+  const list = filtered.slice().sort((a,b)=>(a.status==='Shoot done')-(b.status==='Shoot done') || (a.shootDate||'').localeCompare(b.shootDate||''));
   wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>`
     <div class="task-card">
       <div class="task-top">
@@ -2503,9 +2636,11 @@ window.saveDirectionAdditionalInfo = async function(id){
   const textarea = document.getElementById('dirAddInfo-'+id);
   if (!textarea) return;
   const additionalInfo = textarea.value.trim();
+  const cName = _content.find(c=>c.id===id)?.gameName || id;
   try {
     await updateDoc(doc(db,'ada_content',id), { additionalInfo });
     showToast('Additional info updated.');
+    logActivity('updated','direction', cName, 'Additional info updated');
     await ensureContentLoaded();
     renderDirectionTable();
   } catch(err) { showToast('Error: '+err.message, true); }
@@ -2513,9 +2648,11 @@ window.saveDirectionAdditionalInfo = async function(id){
 
 window.updateDirectionStatus = async function(id, newStatus){
   if (!canManage('direction')) { showToast('Only the Direction team can update shoot status.', true); return; }
+  const cName = _content.find(c=>c.id===id)?.gameName || id;
   try {
     await updateDoc(doc(db,'ada_content',id), { status: newStatus });
     showToast('Status updated.');
+    logActivity('updated','direction', cName, `Status set to ${newStatus}`);
     await ensureContentLoaded();
     renderDirectionTable();
     // If this shoot was just marked done, push it into Video Editing right away
@@ -2532,6 +2669,7 @@ window.toggleTaskStatus = async function(id){
   try {
     await updateDoc(doc(db,'ada_tasks',id), { status:newStatus, completedAt: newStatus==='completed' ? new Date().toISOString() : '' });
     showToast(newStatus==='completed' ? 'Task marked complete.' : 'Task reopened.');
+    logActivity('updated','tasks', t.title || id, `Status set to ${newStatus}`);
     await ensureTasksLoaded();
     renderCalendar();
     renderTasksTable();
@@ -2547,6 +2685,7 @@ window.deleteTask = async function(id){
   try {
     await deleteDoc(doc(db,'ada_tasks',id));
     showToast('Task deleted.');
+    logActivity('deleted','tasks', t.title || id);
     await ensureTasksLoaded();
     renderCalendar();
     renderTasksTable();
@@ -2729,6 +2868,7 @@ async function onExpenseFormSubmit(e){
     }
     cancelExpenseEdit();
     showToast(editing ? 'Expense updated.' : (isAdminNow ? 'Expense added.' : 'Expense submitted for admin approval.'));
+    logActivity(editing ? 'updated' : 'created', 'expenses', `${formatCurrency(amount)} — ${category}`, description);
     loadExpensesPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally {
@@ -2750,15 +2890,17 @@ window.deleteExpense = async function(id){
     if (expenseStatus(x) === 'approved') { showToast("This expense is already approved and can't be deleted.", true); return; }
   }
   if (!confirm('Delete this expense?')) return;
-  try { await deleteDoc(doc(db,'ada_expenses',id)); showToast('Expense deleted.'); loadExpensesPage(); }
+  try { await deleteDoc(doc(db,'ada_expenses',id)); showToast('Expense deleted.'); logActivity('deleted','expenses', x ? `${formatCurrency(x.amount)} — ${x.category||''}` : id); loadExpensesPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 
 window.setExpenseStatus = async function(id, newStatus){
   if (!canManage('expenses')) return;
+  const x = _expenses.find(e=>e.id===id);
   try {
     await updateDoc(doc(db,'ada_expenses',id), { status:newStatus, reviewedAt:new Date().toISOString(), reviewedBy:window.adaCurrentUser?.uid||null });
     showToast(newStatus==='approved' ? 'Expense approved.' : 'Expense rejected.');
+    logActivity('updated','expenses', x ? `${formatCurrency(x.amount)} — ${x.category||''}` : id, `Status set to ${newStatus}`);
     loadExpensesPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 };
@@ -2853,6 +2995,7 @@ async function onRevenueFormSubmit(e){
     }
     cancelRevenueEdit();
     showToast(editing ? 'Revenue updated.' : 'Revenue added.');
+    logActivity(editing ? 'updated' : 'created', 'revenue', `${formatCurrency(amount)} — ${source}`, description);
     loadRevenuePage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; }
@@ -2860,7 +3003,8 @@ async function onRevenueFormSubmit(e){
 window.deleteRevenue = async function(id){
   if (!canManage('revenue')) { showToast('View-only access — you cannot delete revenue.', true); return; }
   if (!confirm('Delete this revenue entry?')) return;
-  try { await deleteDoc(doc(db,'ada_revenue',id)); showToast('Revenue deleted.'); loadRevenuePage(); }
+  const r = _revenue.find(x=>x.id===id);
+  try { await deleteDoc(doc(db,'ada_revenue',id)); showToast('Revenue deleted.'); logActivity('deleted','revenue', r ? `${formatCurrency(r.amount)} — ${r.source||''}` : id); loadRevenuePage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.exportRevenueExcel = function(){
@@ -2939,6 +3083,7 @@ async function onLiabilityFormSubmit(e){
     }
     cancelLiabilityEdit();
     showToast(editing ? 'Liability updated.' : 'Liability recorded.');
+    logActivity(editing ? 'updated' : 'created', 'liability', `${crewName(crewId)} — ${formatCurrency(amount)}`, description);
     loadLiabilityPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; }
@@ -2946,7 +3091,8 @@ async function onLiabilityFormSubmit(e){
 window.deleteLiability = async function(id){
   if (!canManage('liability')) { showToast('View-only access — you cannot delete liability.', true); return; }
   if (!confirm('Delete this liability entry?')) return;
-  try { await deleteDoc(doc(db,'ada_liability',id)); showToast('Deleted.'); loadLiabilityPage(); }
+  const l = _liability.find(x=>x.id===id);
+  try { await deleteDoc(doc(db,'ada_liability',id)); showToast('Deleted.'); logActivity('deleted','liability', l ? `${l.crewName||''} — ${formatCurrency(l.amount)}` : id); loadLiabilityPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.exportLiabilityExcel = function(){
@@ -3027,6 +3173,7 @@ async function onPaymentFormSubmit(e){
     }
     cancelPaymentEdit();
     showToast(editing ? 'Payment updated.' : 'Payment recorded.');
+    logActivity(editing ? 'updated' : 'created', 'payments', `${crewName(crewId)} — ${formatCurrency(amount)}`, method);
     loadPaymentsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; }
@@ -3034,7 +3181,8 @@ async function onPaymentFormSubmit(e){
 window.deletePayment = async function(id){
   if (!canManage('payments')) { showToast('View-only access — you cannot delete payments.', true); return; }
   if (!confirm('Delete this payment entry?')) return;
-  try { await deleteDoc(doc(db,'ada_payments',id)); showToast('Deleted.'); loadPaymentsPage(); }
+  const p = _payments.find(x=>x.id===id);
+  try { await deleteDoc(doc(db,'ada_payments',id)); showToast('Deleted.'); logActivity('deleted','payments', p ? `${p.crewName||''} — ${formatCurrency(p.amount)}` : id); loadPaymentsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.exportPaymentsExcel = function(){
@@ -3131,6 +3279,7 @@ async function onProvisionFormSubmit(e){
     }
     cancelProvisionEdit();
     showToast(editing ? 'Provision updated.' : 'Provision added.');
+    logActivity(editing ? 'updated' : 'created', 'provisions', formatCurrency(amount), description);
     loadProvisionsPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally { btn.disabled = false; }
@@ -3138,7 +3287,8 @@ async function onProvisionFormSubmit(e){
 window.deleteProvision = async function(id){
   if (!canManage('provisions')) { showToast('View-only access — you cannot delete provisions.', true); return; }
   if (!confirm('Delete this provision? This will reduce the Available Balance (Team) accordingly.')) return;
-  try { await deleteDoc(doc(db,'ada_provisions',id)); showToast('Deleted.'); loadProvisionsPage(); }
+  const p = _provisions.find(x=>x.id===id);
+  try { await deleteDoc(doc(db,'ada_provisions',id)); showToast('Deleted.'); logActivity('deleted','provisions', p ? formatCurrency(p.amount) : id); loadProvisionsPage(); }
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.exportProvisionsExcel = function(){
@@ -3266,6 +3416,211 @@ window.exportPnLExcel = function(){
   const byClient = d.clientKeys.map(c=>({ Client:c, Revenue:d.clientAgg[c].rev, Expenses:d.clientAgg[c].exp, Net:d.clientAgg[c].rev-d.clientAgg[c].exp }));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(byClient), 'By Client');
   XLSX.writeFile(wb, 'ada_pnl_report.xlsx');
+};
+
+// ═══════════════════ UNIVERSAL SEARCH ═══════════════════
+let _usrDebounce = null;
+function wireUniversalSearch(){
+  const input = document.getElementById('universalSearchInput');
+  const clearBtn = document.getElementById('universalSearchClear');
+  const resultsEl = document.getElementById('universalSearchResults');
+  input.addEventListener('input', ()=>{
+    clearBtn.style.display = input.value ? '' : 'none';
+    clearTimeout(_usrDebounce);
+    _usrDebounce = setTimeout(()=>runUniversalSearch(input.value.trim()), 220);
+  });
+  input.addEventListener('focus', ()=>{ if (input.value.trim()) resultsEl.classList.add('open'); });
+  clearBtn.addEventListener('click', ()=>{
+    input.value = ''; clearBtn.style.display = 'none';
+    resultsEl.classList.remove('open'); resultsEl.innerHTML = '';
+    input.focus();
+  });
+  document.addEventListener('click', e=>{
+    if (!document.getElementById('universalSearchWrap').contains(e.target)) resultsEl.classList.remove('open');
+  });
+  input.addEventListener('keydown', e=>{ if (e.key === 'Escape') { resultsEl.classList.remove('open'); input.blur(); } });
+}
+
+// Lazily fetches any collection not yet cached in memory so search covers the
+// whole portal, not just whatever page was last visited.
+async function ensureAllDataForSearch(){
+  const jobs = [];
+  if (!_users.length) jobs.push(ensureUsersLoaded());
+  if (!_locations.length) jobs.push(ensureLocationsLoaded());
+  if (!_clients.length) jobs.push(ensureClientsLoaded());
+  if (!_tasks.length) jobs.push(ensureTasksLoaded());
+  if (!_content.length) jobs.push(ensureContentLoaded());
+  if (!_videos.length) jobs.push(ensureVideosLoaded());
+  if (!_items.length) jobs.push(getDocs(collection(db,'ada_items')).then(s=>{ _items = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  if (!_assets.length) jobs.push(getDocs(collection(db,'ada_assets')).then(s=>{ _assets = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  if (!_expenses.length) jobs.push(getDocs(collection(db,'ada_expenses')).then(s=>{ _expenses = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  if (!_revenue.length) jobs.push(getDocs(collection(db,'ada_revenue')).then(s=>{ _revenue = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  if (!_liability.length) jobs.push(getDocs(collection(db,'ada_liability')).then(s=>{ _liability = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  if (!_payments.length) jobs.push(getDocs(collection(db,'ada_payments')).then(s=>{ _payments = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  if (!_provisions.length) jobs.push(getDocs(collection(db,'ada_provisions')).then(s=>{ _provisions = s.docs.map(d=>({id:d.id,...d.data()})); }));
+  await Promise.all(jobs);
+}
+
+function usrMatch(str, q){ return (str||'').toString().toLowerCase().includes(q); }
+
+async function runUniversalSearch(qRaw){
+  const resultsEl = document.getElementById('universalSearchResults');
+  const q = qRaw.toLowerCase();
+  if (!q) { resultsEl.classList.remove('open'); resultsEl.innerHTML = ''; return; }
+  resultsEl.classList.add('open');
+  resultsEl.innerHTML = `<div class="usr-loading"><i class="fa-solid fa-spinner fa-spin"></i> Searching…</div>`;
+  try {
+    await ensureAllDataForSearch();
+  } catch(err) { resultsEl.innerHTML = `<div class="usr-empty">Search error: ${escHtml(err.message)}</div>`; return; }
+
+  const groups = [];
+  const pushGroup = (label, page, items) => { if (items.length) groups.push({label, page, items: items.slice(0,6)}); };
+
+  if (roleIsAdmin()) {
+    pushGroup('Users', 'users', _users.filter(u=>usrMatch(u.name,q)||usrMatch(u.email,q)).map(u=>({
+      title:u.name||u.email, meta:`${u.role||'crew'}${(userDepts(u).length?' · '+userDepts(u).join(', '):'')}`, nav:{page:'users'}
+    })));
+  }
+  if (canViewPage('items')) {
+    pushGroup('Items', 'items', _items.filter(i=>usrMatch(i.name,q)||usrMatch(i.category,q)).map(i=>({
+      title:i.name, meta:i.category||'No category', nav:{page:'items'}
+    })));
+  }
+  if (canViewPage('locations')) {
+    pushGroup('Locations', 'locations', _locations.filter(l=>usrMatch(l.name,q)).map(l=>({
+      title:l.name, meta:'Location', nav:{page:'locations'}
+    })));
+  }
+  if (canViewPage('clients')) {
+    pushGroup('Clients', 'clients', _clients.filter(c=>usrMatch(c.name,q)).map(c=>({
+      title:c.name, meta:'Client', nav:{page:'clients'}
+    })));
+  }
+  pushGroup('Assets', 'assets', _assets.filter(a=>usrMatch(a.itemName,q)||usrMatch(a.locationName,q)||usrMatch(a.notes,q)).map(a=>({
+    title:`${a.itemName||'Item'} @ ${a.locationName||'—'}`, meta:`Qty ${a.quantity??0}`, nav:{page:'assets'}
+  })));
+  pushGroup('Tasks & Calendar', 'tasks', _tasks.filter(t=>usrMatch(t.title,q)||usrMatch(t.description,q)||usrMatch(t.locationName,q)).map(t=>({
+    title:t.title, meta:`${formatDate(t.date)}${t.assignedToName?' · '+t.assignedToName:''}`, nav:{page:'tasks'}
+  })));
+  pushGroup('Content', 'content', _content.filter(c=>usrMatch(c.gameName,q)||usrMatch(c.props,q)||usrMatch(c.additionalInfo,q)).map(c=>({
+    title:c.gameName, meta:`Shoot ${formatDate(c.shootDate)} · ${c.status||'Pending'}`, nav:{page:'content'}
+  })));
+  if (canViewPage('direction')) {
+    pushGroup('Direction', 'direction', _content.filter(c=>usrMatch(c.gameName,q)||usrMatch(c.additionalInfo,q)).map(c=>({
+      title:c.gameName, meta:`Shoot ${formatDate(c.shootDate)} · ${c.status||'Pending'}`, nav:{page:'direction', shootDate:c.shootDate}
+    })));
+  }
+  if (canViewPage('videoediting')) {
+    pushGroup('Video Editing', 'videoediting', _videos.filter(v=>usrMatch(v.title,q)).map(v=>({
+      title:v.title, meta:`${formatDate(v.shootDate)} · ${v.status||'Pending'}`, nav:{page:'videoediting', shootDate:v.shootDate}
+    })));
+  }
+  pushGroup('Expenses', 'expenses', _expenses.filter(x=>usrMatch(x.description,q)||usrMatch(x.category,q)||usrMatch(x.crewName,q)||usrMatch(x.clientName,q)).map(x=>({
+    title:`${formatCurrency(x.amount)} — ${x.category||'Misc'}`, meta:`${formatDate(x.date)}${x.crewName?' · '+x.crewName:''}`, nav:{page:'expenses'}
+  })));
+  pushGroup('Revenue', 'revenue', _revenue.filter(r=>usrMatch(r.description,q)||usrMatch(r.source,q)||usrMatch(r.clientName,q)).map(r=>({
+    title:`${formatCurrency(r.amount)} — ${r.source||''}`, meta:formatDate(r.date), nav:{page:'revenue'}
+  })));
+  pushGroup('Crew Liability', 'liability', _liability.filter(l=>usrMatch(l.description,q)||usrMatch(l.crewName,q)).map(l=>({
+    title:`${l.crewName||''} — ${formatCurrency(l.amount)}`, meta:formatDate(l.date), nav:{page:'liability'}
+  })));
+  pushGroup('Crew Payments', 'payments', _payments.filter(p=>usrMatch(p.notes,q)||usrMatch(p.crewName,q)||usrMatch(p.method,q)).map(p=>({
+    title:`${p.crewName||''} — ${formatCurrency(p.amount)}`, meta:`${formatDate(p.date)}${p.method?' · '+p.method:''}`, nav:{page:'payments'}
+  })));
+  pushGroup('Provisions', 'provisions', _provisions.filter(p=>usrMatch(p.description,q)).map(p=>({
+    title:formatCurrency(p.amount), meta:formatDate(p.date), nav:{page:'provisions'}
+  })));
+
+  if (!groups.length) { resultsEl.innerHTML = `<div class="usr-empty">No matches for "${escHtml(qRaw)}".</div>`; return; }
+
+  resultsEl.innerHTML = groups.map((g,gi)=>`
+    <div class="usr-group-label">${escHtml(g.label)}</div>
+    ${g.items.map((it,ii)=>`
+      <div class="usr-item" data-gi="${gi}" data-ii="${ii}">
+        <span class="usr-item-title">${escHtml(it.title||'Untitled')}</span>
+        <span class="usr-item-meta">${escHtml(it.meta||'')}</span>
+      </div>`).join('')}
+  `).join('');
+
+  resultsEl.querySelectorAll('.usr-item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const g = groups[Number(el.dataset.gi)];
+      const it = g.items[Number(el.dataset.ii)];
+      usrGoToResult(it.nav);
+    });
+  });
+}
+
+function usrGoToResult(nav){
+  const resultsEl = document.getElementById('universalSearchResults');
+  const input = document.getElementById('universalSearchInput');
+  resultsEl.classList.remove('open');
+  input.value = '';
+  document.getElementById('universalSearchClear').style.display = 'none';
+  showAdminPage(nav.page);
+  if (nav.shootDate) {
+    // Give the page's async loader a moment to populate its dropdown before we set it.
+    setTimeout(()=>{
+      if (nav.page === 'videoediting') {
+        const sel = document.getElementById('veShootDateSelect');
+        if (sel && [...sel.options].some(o=>o.value===nav.shootDate)) { sel.value = nav.shootDate; window.onVeShootDateChange(); }
+      } else if (nav.page === 'direction') {
+        const sel = document.getElementById('dirShootDateSelect');
+        if (sel && [...sel.options].some(o=>o.value===nav.shootDate)) { sel.value = nav.shootDate; window.onDirShootDateChange(); }
+      }
+    }, 450);
+  }
+}
+
+// ═══════════════════ ACTIVITY LOG ═══════════════════
+const ACTIVITY_TYPE_LABELS = {
+  users:'Users', items:'Items', locations:'Locations', clients:'Clients', assets:'Assets',
+  tasks:'Tasks & Calendar', content:'Content', direction:'Direction', videoediting:'Video Editing',
+  expenses:'Expenses', revenue:'Revenue', liability:'Crew Liability', payments:'Crew Payments', provisions:'Provisions'
+};
+function activityActionPillClass(action){
+  if (action === 'deleted') return 'pill-status-pending';
+  if (action === 'created') return 'pill-status-approved';
+  return 'pill-status-edited';
+}
+async function loadActivityLogPage(){
+  const wrap = document.getElementById('activityLogTableWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    await ensureActivityLogLoaded();
+    const typeSel = document.getElementById('logFilterType');
+    if (typeSel.options.length <= 1) {
+      typeSel.innerHTML = `<option value="">All sections</option>` + Object.keys(ACTIVITY_TYPE_LABELS).map(k=>`<option value="${k}">${ACTIVITY_TYPE_LABELS[k]}</option>`).join('');
+    }
+    renderActivityLogTable();
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading activity log.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+window.renderActivityLogTable = function(){
+  const wrap = document.getElementById('activityLogTableWrap');
+  if (!wrap) return;
+  const typeFilter = document.getElementById('logFilterType')?.value || '';
+  const from = document.getElementById('logFrom')?.value || '';
+  const to = document.getElementById('logTo')?.value || '';
+  const q = (document.getElementById('logSearch')?.value || '').trim().toLowerCase();
+  let list = _activityLog.slice();
+  if (typeFilter) list = list.filter(a=>a.entityType===typeFilter);
+  if (from) list = list.filter(a=>(a.timestamp||'').slice(0,10) >= from);
+  if (to) list = list.filter(a=>(a.timestamp||'').slice(0,10) <= to);
+  if (q) list = list.filter(a=>(a.userName||'').toLowerCase().includes(q) || (a.label||'').toLowerCase().includes(q) || (a.extra||'').toLowerCase().includes(q));
+  if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No activity found.</h3><p>Nothing matches these filters yet.</p></div>`; return; }
+  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Section</th><th>Details</th></tr></thead><tbody>
+    ${list.map(a=>{
+      const dt = a.timestamp ? new Date(a.timestamp) : null;
+      const when = dt ? dt.toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      return `<tr>
+        <td style="white-space:nowrap;">${when}</td>
+        <td><strong>${escHtml(a.userName||'Someone')}</strong></td>
+        <td><span class="pill ${activityActionPillClass(a.action)}">${escHtml(a.action||'')}</span></td>
+        <td>${escHtml(ACTIVITY_TYPE_LABELS[a.entityType] || a.entityType || '—')}</td>
+        <td>${escHtml(a.label||'')}${a.extra ? ` <span style="color:var(--text-3);">— ${escHtml(a.extra)}</span>` : ''}</td>
+      </tr>`;
+    }).join('')}
+  </tbody></table></div>`;
 };
 </script>
 </body>
