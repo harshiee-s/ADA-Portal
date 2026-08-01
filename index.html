@@ -671,10 +671,10 @@ body.no-scroll{overflow:hidden;}
 
     <section class="page" id="page-expenses">
       <div class="card panel">
-        <div class="panel-head"><h2>Add Expense</h2><p>Attach the bill (image or PDF, under 700 KB). Expenses added by crew members need admin approval before they count toward totals.</p></div>
+        <div class="panel-head"><h2>Add Expense</h2><p>Attach the bill (image or PDF, under 700 KB). Expenses added by crew members need admin approval before they count toward totals. Admins can split one bill across multiple crew members.</p></div>
         <form id="expenseForm" class="form-grid">
           <div class="field"><label>Date</label><input class="input" type="date" id="expDate" required></div>
-          <div class="field"><label>Amount (₹)</label><input class="input" type="number" id="expAmount" min="0" step="0.01" required></div>
+          <div class="field"><label>Amount (₹)</label><input class="input" type="number" id="expAmount" min="0" step="0.01" required oninput="updateExpenseSplitTotalNote()"></div>
           <div class="field"><label>Crew Member</label><select class="input" id="expCrew"><option value="">General / Not crew-specific</option></select></div>
           <div class="field"><label>Client</label><select class="input" id="expClient"><option value="">No client / Internal</option></select></div>
           <div class="field"><label>Category</label>
@@ -683,6 +683,16 @@ body.no-scroll{overflow:hidden;}
             </select>
           </div>
           <div class="field" style="grid-column:1/-1;"><label>Description</label><input class="input" id="expDescription"></div>
+          <div class="field" id="expSplitToggleWrap" style="grid-column:1/-1;display:none;flex-direction:row;align-items:center;gap:.5rem;">
+            <input type="checkbox" id="expSplitToggle" onchange="onExpenseSplitToggle()" style="width:auto;">
+            <label for="expSplitToggle" style="margin:0;">Split this expense between multiple crew members</label>
+          </div>
+          <div class="field" id="expSplitWrap" style="grid-column:1/-1;display:none;">
+            <label>Split Between</label>
+            <div id="expSplitRows" style="display:flex;flex-direction:column;gap:.5rem;"></div>
+            <button class="btn btn-secondary" type="button" style="margin-top:.6rem;width:fit-content;" onclick="addExpenseSplitRow()"><i class="fa-solid fa-plus"></i> Add Crew Member</button>
+            <p id="expSplitTotalNote" style="font-size:.75rem;margin-top:.5rem;"></p>
+          </div>
           <div class="field" style="grid-column:1/-1;">
             <label>Attach Bill (optional)</label>
             <label class="file-drop" id="expFileDrop" for="expFile"><i class="fa-solid fa-cloud-arrow-up"></i> Click to attach a photo or PDF of the bill (max 700 KB)</label>
@@ -1314,6 +1324,29 @@ function clientNameOf(id){
 // treat those as already-approved so historical totals don't change.
 function expenseStatus(x){ return x.status || 'approved'; }
 function isApprovedExpense(x){ return expenseStatus(x) === 'approved'; }
+
+// ─── SPLIT EXPENSE HELPERS ───
+// An expense can either belong to one crew member (x.crewId) or be split
+// across several (x.splits: [{crewId, crewName, amount}, ...]) when 2+ crew
+// members jointly paid for the same bill. Everywhere the app attributes an
+// expense amount to a specific crew member, it should go through these.
+function expenseCrewAmount(x, crewId){
+  if (Array.isArray(x.splits) && x.splits.length) {
+    const s = x.splits.find(s=>s.crewId===crewId);
+    return s ? Number(s.amount||0) : 0;
+  }
+  return x.crewId===crewId ? Number(x.amount||0) : 0;
+}
+function expenseCrewIds(x){
+  if (Array.isArray(x.splits) && x.splits.length) return x.splits.map(s=>s.crewId).filter(Boolean);
+  return x.crewId ? [x.crewId] : [];
+}
+function expenseCrewLabel(x){
+  if (Array.isArray(x.splits) && x.splits.length) {
+    return x.splits.map(s=>`${escHtml(s.crewName||crewName(s.crewId))} <span style="color:var(--text-3);">(${formatCurrency(s.amount)})</span>`).join(', ');
+  }
+  return x.crewId ? escHtml(x.crewName||crewName(x.crewId)) : '<span style="color:var(--text-3);">General</span>';
+}
 async function ensureClientsLoaded(){
   const snap = await getDocs(collection(db,'ada_clients'));
   _clients = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
@@ -1499,7 +1532,7 @@ async function computeAvailableBalances(){
   const crew = _users.filter(u=>u.role==='crew');
   return crew.map(c=>{
     const totalLiab = liab.filter(l=>l.crewId===c.id).reduce((s,l)=>s+Number(l.amount||0),0);
-    const totalExp = exp.filter(x=>x.crewId===c.id).reduce((s,x)=>s+Number(x.amount||0),0);
+    const totalExp = exp.reduce((s,x)=>s+expenseCrewAmount(x,c.id),0);
     const totalPaid = pay.filter(p=>p.crewId===c.id).reduce((s,p)=>s+Number(p.amount||0),0);
     // Available = Liability - Expenses claimed - Payments already made.
     // A payment to this crew member reduces their available balance right away.
@@ -2827,12 +2860,17 @@ async function loadExpensesPage(){
       crewSel.disabled = false;
       crewSel.innerHTML = '<option value="">General / Not crew-specific</option>' + crewOnly;
       crewSel.value = prevExpCrew;
+      document.getElementById('expSplitToggleWrap').style.display = 'flex';
     } else {
       // Crew members can only record expenses under their own name —
-      // they cannot add an expense for anyone else.
+      // they cannot add an expense for anyone else, and can't split a bill
+      // across multiple people (that's an admin-only reconciliation tool).
       const myName = window.adaProfile?.name || window.adaProfile?.email || 'Me';
       crewSel.innerHTML = `<option value="${currentUid}" selected>${escHtml(myName)}</option>`;
       crewSel.disabled = true;
+      document.getElementById('expSplitToggleWrap').style.display = 'none';
+      document.getElementById('expSplitToggle').checked = false;
+      document.getElementById('expSplitWrap').style.display = 'none';
     }
 
     const clientSel = document.getElementById('expClient');
@@ -2855,7 +2893,7 @@ async function loadExpensesPage(){
     // Crew members can now view everyone's expenses, same as admin —
     // they just can't add/edit/delete anything that isn't their own, and
     // only approved expenses count toward totals elsewhere in the app.
-    let list = filterCrew ? _expenses.filter(x=>x.crewId===filterCrew) : _expenses;
+    let list = filterCrew ? _expenses.filter(x=>expenseCrewIds(x).includes(filterCrew)) : _expenses;
     if (filterClient) list = list.filter(x=>x.clientId===filterClient);
     if (filterStatus) list = list.filter(x=>expenseStatus(x)===filterStatus);
     _expensesVisible = list;
@@ -2874,7 +2912,7 @@ async function loadExpensesPage(){
         <td>${formatDate(x.date)}</td>
         <td><strong>${formatCurrency(x.amount)}</strong></td>
         <td>${escHtml(x.category||'—')}</td>
-        <td>${x.crewId ? escHtml(x.crewName||crewName(x.crewId)) : '<span style="color:var(--text-3);">General</span>'}</td>
+        <td>${expenseCrewLabel(x)}</td>
         <td>${x.clientId ? escHtml(x.clientName||clientNameOf(x.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
         <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
         <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
@@ -2889,6 +2927,66 @@ async function loadExpensesPage(){
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading expenses.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
 
+// ─── SPLIT EXPENSE ROW MANAGEMENT (Add Expense form) ───
+let _expenseSplitRows = []; // array of row element ids currently in the split UI
+window.onExpenseSplitToggle = function(){
+  const on = document.getElementById('expSplitToggle').checked;
+  document.getElementById('expSplitWrap').style.display = on ? '' : 'none';
+  document.getElementById('expCrew').closest('.field').style.display = on ? 'none' : '';
+  if (on && _expenseSplitRows.length === 0) { addExpenseSplitRow(); addExpenseSplitRow(); }
+  if (!on) { document.getElementById('expCrew').value = ''; }
+  updateExpenseSplitTotalNote();
+};
+window.addExpenseSplitRow = function(prefill){
+  const rowId = 'expSplitRow_' + Math.random().toString(36).slice(2,9);
+  _expenseSplitRows.push(rowId);
+  const wrap = document.getElementById('expSplitRows');
+  const row = document.createElement('div');
+  row.id = rowId;
+  row.style.cssText = 'display:flex;gap:.5rem;align-items:center;';
+  row.innerHTML = `
+    <select class="input split-crew" style="flex:2;">${crewOptionsHtml(prefill?.crewId||'')}</select>
+    <input type="number" class="input split-amount" placeholder="Amount" min="0" step="0.01" style="flex:1;" value="${prefill?.amount ?? ''}">
+    <button type="button" class="mini-btn mini-btn-danger" onclick="removeExpenseSplitRow('${rowId}')" title="Remove"><i class="fa-solid fa-trash"></i></button>
+  `;
+  wrap.appendChild(row);
+  row.querySelector('.split-crew').addEventListener('change', updateExpenseSplitTotalNote);
+  row.querySelector('.split-amount').addEventListener('input', updateExpenseSplitTotalNote);
+  updateExpenseSplitTotalNote();
+};
+window.removeExpenseSplitRow = function(rowId){
+  _expenseSplitRows = _expenseSplitRows.filter(id=>id!==rowId);
+  document.getElementById(rowId)?.remove();
+  updateExpenseSplitTotalNote();
+};
+function clearExpenseSplitRows(){
+  _expenseSplitRows.forEach(id=>document.getElementById(id)?.remove());
+  _expenseSplitRows = [];
+}
+function getExpenseSplitRowsData(){
+  return _expenseSplitRows.map(rowId=>{
+    const row = document.getElementById(rowId);
+    if (!row) return null;
+    const crewId = row.querySelector('.split-crew').value;
+    const amount = Number(row.querySelector('.split-amount').value || 0);
+    return crewId ? { crewId, crewName: crewName(crewId), amount } : null;
+  }).filter(Boolean);
+}
+window.updateExpenseSplitTotalNote = function(){
+  const note = document.getElementById('expSplitTotalNote');
+  if (!note) return;
+  const sum = getExpenseSplitRowsData().reduce((s,r)=>s+Number(r.amount||0),0);
+  const total = Number(document.getElementById('expAmount').value || 0);
+  const diff = total - sum;
+  if (Math.abs(diff) <= 0.01 && total > 0) {
+    note.textContent = `Split total: ${formatCurrency(sum)} of ${formatCurrency(total)} — matches ✓`;
+    note.style.color = 'var(--success)';
+  } else {
+    note.textContent = `Split total: ${formatCurrency(sum)} of ${formatCurrency(total)}` + (diff>0 ? ` — ${formatCurrency(diff)} unassigned` : ` — exceeds total by ${formatCurrency(-diff)}`);
+    note.style.color = 'var(--warn)';
+  }
+};
+
 window.editExpense = function(id){
   const x = _expenses.find(e=>e.id===id);
   if (!x) return;
@@ -2900,10 +2998,24 @@ window.editExpense = function(id){
   _editingExpenseId = id;
   document.getElementById('expDate').value = x.date || '';
   document.getElementById('expAmount').value = x.amount || '';
-  document.getElementById('expCrew').value = x.crewId || '';
   document.getElementById('expClient').value = x.clientId || '';
   document.getElementById('expCategory').value = x.category || 'Equipment';
   document.getElementById('expDescription').value = x.description || '';
+
+  const isSplit = Array.isArray(x.splits) && x.splits.length > 0;
+  clearExpenseSplitRows();
+  document.getElementById('expSplitToggle').checked = isSplit;
+  if (isSplit) {
+    document.getElementById('expSplitWrap').style.display = '';
+    document.getElementById('expCrew').closest('.field').style.display = 'none';
+    x.splits.forEach(s=>addExpenseSplitRow(s));
+  } else {
+    document.getElementById('expSplitWrap').style.display = 'none';
+    document.getElementById('expCrew').closest('.field').style.display = '';
+    document.getElementById('expCrew').value = x.crewId || '';
+  }
+  updateExpenseSplitTotalNote();
+
   _pendingBill = null;
   const dropEl = document.getElementById('expFileDrop');
   dropEl.classList.toggle('has-file', !!x.billBase64);
@@ -2917,8 +3029,12 @@ window.editExpense = function(id){
 window.cancelExpenseEdit = function(){
   _editingExpenseId = null;
   _pendingBill = null;
+  clearExpenseSplitRows();
   document.getElementById('expenseForm').reset();
   document.getElementById('expDate').value = todayISO();
+  document.getElementById('expSplitToggle').checked = false;
+  document.getElementById('expSplitWrap').style.display = 'none';
+  document.getElementById('expCrew').closest('.field').style.display = '';
   const dropEl = document.getElementById('expFileDrop');
   dropEl.classList.remove('has-file');
   dropEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Click to attach a photo or PDF of the bill (max 700 KB)';
@@ -2930,13 +3046,26 @@ async function onExpenseFormSubmit(e){
   e.preventDefault();
   const btn = document.getElementById('expSubmitBtn');
   const editing = _editingExpenseId;
-  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+  const isAdminNow = canManage('expenses');
   const date = document.getElementById('expDate').value;
   const amount = Number(document.getElementById('expAmount').value);
-  const isAdminNow = canManage('expenses');
+  const isSplit = isAdminNow && document.getElementById('expSplitToggle').checked;
+
+  let splitRows = [];
+  if (isSplit) {
+    splitRows = getExpenseSplitRowsData();
+    if (splitRows.length < 2) { showToast('Add at least 2 crew members to split this expense between.', true); return; }
+    const crewIdsUsed = splitRows.map(r=>r.crewId);
+    if (new Set(crewIdsUsed).size !== crewIdsUsed.length) { showToast('The same crew member is selected more than once in the split.', true); return; }
+    const sum = splitRows.reduce((s,r)=>s+Number(r.amount||0),0);
+    if (Math.abs(sum - amount) > 0.01) { showToast(`Split amounts (${formatCurrency(sum)}) must add up to the total amount (${formatCurrency(amount)}).`, true); return; }
+  }
+
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
   // Crew can only ever record expenses under their own name, even if the
-  // (disabled) field were tampered with client-side.
-  const crewId = isAdminNow ? document.getElementById('expCrew').value : (window.adaCurrentUser?.uid || '');
+  // (disabled) field were tampered with client-side. Split expenses have no
+  // single crewId — the breakdown lives in data.splits instead.
+  const crewId = isSplit ? '' : (isAdminNow ? document.getElementById('expCrew').value : (window.adaCurrentUser?.uid || ''));
   const clientId = document.getElementById('expClient').value;
   const category = document.getElementById('expCategory').value;
   const description = document.getElementById('expDescription').value.trim();
@@ -2944,7 +3073,8 @@ async function onExpenseFormSubmit(e){
     const data = {
       date, amount, category, description,
       crewId: crewId || null, crewName: crewId ? crewName(crewId) : '',
-      clientId: clientId || null, clientName: clientId ? clientNameOf(clientId) : ''
+      clientId: clientId || null, clientName: clientId ? clientNameOf(clientId) : '',
+      splits: isSplit ? splitRows : null
     };
     if (_pendingBill) { data.billBase64 = _pendingBill.base64; data.billFileName = _pendingBill.fileName; data.billFileType = _pendingBill.fileType; }
     if (editing) {
@@ -2962,7 +3092,7 @@ async function onExpenseFormSubmit(e){
     }
     cancelExpenseEdit();
     showToast(editing ? 'Expense updated.' : (isAdminNow ? 'Expense added.' : 'Expense submitted for admin approval.'));
-    logActivity(editing ? 'updated' : 'created', 'expenses', `${formatCurrency(amount)} — ${category}`, description);
+    logActivity(editing ? 'updated' : 'created', 'expenses', `${formatCurrency(amount)} — ${category}`, isSplit ? `Split between ${splitRows.length} crew — ${description}` : description);
     loadExpensesPage();
   } catch(err) { showToast('Error: '+err.message, true); }
   finally {
@@ -3001,7 +3131,15 @@ window.setExpenseStatus = async function(id, newStatus){
 window.exportExpensesExcel = function(){
   const rows_source = _expensesVisible;
   if (!rows_source.length) { showToast('No expenses to export.', true); return; }
-  const rows = rows_source.map(x=>({ Date:x.date, Amount:x.amount, Category:x.category, Crew:x.crewName||'General', Client:x.clientName||'', Description:x.description||'', Status: expenseStatus(x) }));
+  const rows = rows_source.map(x=>{
+    const isSplit = Array.isArray(x.splits) && x.splits.length > 0;
+    return {
+      Date:x.date, Amount:x.amount, Category:x.category,
+      Crew: isSplit ? 'Split' : (x.crewName||'General'),
+      'Split Details': isSplit ? x.splits.map(s=>`${s.crewName||crewName(s.crewId)}: ${formatCurrency(s.amount)}`).join('; ') : '',
+      Client:x.clientName||'', Description:x.description||'', Status: expenseStatus(x)
+    };
+  });
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
