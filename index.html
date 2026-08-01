@@ -19,6 +19,8 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root {
   --bg:#E6E9EF; --surface:#E6E9EF; --surface-2:#E6E9EF;
@@ -649,14 +651,20 @@ body.no-scroll{overflow:hidden;}
       <div class="card panel">
         <div class="panel-head">
           <h2><i class="fa-solid fa-clapperboard"></i> Shoot Review</h2>
-          <div class="field" style="max-width:340px;margin:0;">
-            <label>Shoot Date</label>
-            <select class="input" id="dirShootDateSelect" onchange="onDirShootDateChange()">
-              <option value="">All shoot dates</option>
-            </select>
+          <div style="display:flex;gap:.8rem;flex-wrap:wrap;align-items:flex-end;">
+            <div class="field" style="max-width:340px;margin:0;">
+              <label>Shoot Date</label>
+              <select class="input" id="dirShootDateSelect" onchange="onDirShootDateChange()">
+                <option value="">All shoot dates</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:.5rem;">
+              <button class="btn btn-secondary" onclick="exportDirectionPDF()"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+              <button class="btn btn-secondary" onclick="exportDirectionExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+            </div>
           </div>
         </div>
-        <p style="font-size:.83rem;color:var(--text-2);margin-bottom:.6rem;">Direction team only — review each content brief and mark the shoot done once it wraps. Marking a shoot done sends it on to the Video Editing team. Pick a shoot date above to focus on just that day.</p>
+        <p style="font-size:.83rem;color:var(--text-2);margin-bottom:.6rem;">Direction team only — review each content brief and mark the shoot done once it wraps. Marking a shoot done sends it on to the Video Editing team. Pick a shoot date above to focus on just that day, then export the briefs for that shoot.</p>
         <div id="directionTableWrap"></div>
       </div>
     </section>
@@ -2630,6 +2638,83 @@ function renderDirectionTable(){
     </div>`
   ).join('') + `</div>`;
 }
+
+// ─── DIRECTION EXPORT (PDF / Excel) ───
+// Exports the content briefs currently in view on the Direction "Shoot Review"
+// table — respects whichever shoot date is selected in dirShootDateSelect.
+function directionExportRows(){
+  const filterDate = dirState.selectedShootDate;
+  const rows_source = filterDate ? _content.filter(c=>c.shootDate===filterDate) : _content;
+  return rows_source.slice().sort((a,b)=>(a.shootDate||'').localeCompare(b.shootDate||''));
+}
+
+window.exportDirectionExcel = function(){
+  const rows_source = directionExportRows();
+  if (!rows_source.length) { showToast('No content briefs to export.', true); return; }
+  const filterDate = dirState.selectedShootDate;
+  const rows = rows_source.map(c=>{
+    const task = shootTasksList().find(t=>t.date===c.shootDate);
+    return {
+      'Shoot Date': formatDate(c.shootDate),
+      'Game': c.gameName || '',
+      'Status': c.status || 'Pending',
+      'Location': task?.locationName || '',
+      'Props': c.props || '',
+      'Reference Video': c.refLink || '',
+      'Additional Info': c.additionalInfo || ''
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Content Briefs');
+  const fname = filterDate ? `content_briefs_${filterDate}.xlsx` : 'content_briefs_all.xlsx';
+  XLSX.writeFile(wb, fname);
+};
+
+window.exportDirectionPDF = function(){
+  const rows_source = directionExportRows();
+  if (!rows_source.length) { showToast('No content briefs to export.', true); return; }
+  if (!window.jspdf) { showToast('PDF library failed to load.', true); return; }
+  const filterDate = dirState.selectedShootDate;
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF();
+  const heading = filterDate ? formatDate(filterDate) : 'All Shoot Dates';
+
+  docPdf.setFont('helvetica','bold');
+  docPdf.setFontSize(16);
+  docPdf.text(heading, 14, 18);
+  docPdf.setFont('helvetica','normal');
+  docPdf.setFontSize(10);
+  docPdf.setTextColor(120);
+  docPdf.text('Content Briefs — Direction Review', 14, 25);
+
+  const body = rows_source.map(c=>{
+    const task = shootTasksList().find(t=>t.date===c.shootDate);
+    return [
+      !filterDate ? formatDate(c.shootDate) : null,
+      c.gameName || '',
+      c.status || 'Pending',
+      task?.locationName || '',
+      c.props || '',
+      c.additionalInfo || ''
+    ].filter(v=>v!==null);
+  });
+  const head = filterDate
+    ? [['Game','Status','Location','Props','Additional Info']]
+    : [['Shoot Date','Game','Status','Location','Props','Additional Info']];
+
+  docPdf.autoTable({
+    startY: 32,
+    head,
+    body,
+    styles:{ fontSize:9, cellPadding:3, valign:'top' },
+    headStyles:{ fillColor:[74,85,104], textColor:255 },
+    columnStyles:{ 0:{ cellWidth: filterDate ? 30 : 24 } }
+  });
+
+  const fname = filterDate ? `content_briefs_${filterDate}.pdf` : 'content_briefs_all.pdf';
+  docPdf.save(fname);
+};
 
 window.toggleDirectionAddInfoEdit = function(id){
   const viewEl = document.getElementById('addInfoView-'+id);
