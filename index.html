@@ -648,6 +648,8 @@ body.no-scroll{overflow:hidden;}
         <div id="directionLocationsWrap"></div>
       </div>
 
+      <div id="dirStatsWrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.9rem;margin-bottom:1rem;"></div>
+
       <div class="card panel">
         <div class="panel-head">
           <h2><i class="fa-solid fa-clapperboard"></i> Shoot Review</h2>
@@ -1393,6 +1395,8 @@ async function loadDashboardPage(){
     const totalAssetQty = assets.reduce((s,a)=>s+Number(a.quantity||0),0);
     const crewCount = _users.filter(u=>u.role==='crew' && u.status!=='inactive').length;
     const videosShot = _content.filter(c=>c.status==='Shoot done').length;
+    // Draft Content = content briefs whose shoot hasn't happened yet (shoot pending in Direction).
+    const draftContent = _content.filter(c=>c.status!=='Shoot done').length;
     wrap.innerHTML = `
       <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${formatCurrency(totalRev)}</div></div>
       <div class="stat-card"><div class="stat-label">Total Expenses</div><div class="stat-value">${formatCurrency(totalExp)}</div></div>
@@ -1402,6 +1406,7 @@ async function loadDashboardPage(){
       <div class="stat-card"><div class="stat-label">Asset Units</div><div class="stat-value">${totalAssetQty}</div></div>
       <div class="stat-card"><div class="stat-label">Active Crew</div><div class="stat-value">${crewCount}</div></div>
       <div class="stat-card"><div class="stat-label">No. of Videos Shot</div><div class="stat-value">${videosShot}</div></div>
+      <div class="stat-card" onclick="showAdminPage('direction')" style="cursor:pointer;"><div class="stat-label">Draft Content</div><div class="stat-value">${draftContent}</div></div>
     `;
     const pipelineCounts = { Pending:0, Edited:0, Approved:0, Posted:0 };
     _videos.forEach(v=>{ const s = v.status||'Pending'; if (pipelineCounts[s]===undefined) pipelineCounts[s]=0; pipelineCounts[s]++; });
@@ -2169,12 +2174,12 @@ function shootTasksList(){
   return _tasks.filter(t=>t.isShoot).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
 }
 
-// Shoot dates come from either a scheduled shoot task, or from a content brief
-// the Direction team has marked "Shoot done" — whichever exists.
+// Shoot dates come ONLY from content briefs the Direction team has marked
+// "Shoot done" — Video Editing should never see a raw Tasks & Calendar shoot
+// date until Direction has signed off on it.
 function veDatesList(){
-  const taskDates = shootTasksList().map(t=>t.date);
   const contentDates = _content.filter(c=>c.status==='Shoot done').map(c=>c.shootDate);
-  return [...new Set([...taskDates, ...contentDates].filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  return [...new Set(contentDates.filter(Boolean))].sort((a,b)=>b.localeCompare(a));
 }
 
 // Auto-loads content marked "Shoot done" by the Direction team into the Video
@@ -2601,8 +2606,22 @@ async function loadDirectionPage(){
   }).join('');
   if (prevSelection && dates.includes(prevSelection)) sel.value = prevSelection;
   else dirState.selectedShootDate = '';
+  renderDirectionStats();
   renderDirectionLocationsTable();
   renderDirectionTable();
+}
+
+// Shoot Pending = content briefs the Direction team hasn't marked "Shoot done" yet.
+function renderDirectionStats(){
+  const wrap = document.getElementById('dirStatsWrap');
+  if (!wrap) return;
+  const shootPending = _content.filter(c=>c.status!=='Shoot done').length;
+  const todayStr = todayISO();
+  const overdue = _content.filter(c=>c.status!=='Shoot done' && c.shootDate && c.shootDate<todayStr).length;
+  wrap.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Shoot Pending</div><div class="stat-value">${shootPending}</div></div>
+    <div class="stat-card"><div class="stat-label">Shoot Date Passed</div><div class="stat-value ${overdue?'neg':''}">${overdue}</div></div>
+  `;
 }
 
 window.onDirShootDateChange = function(){
@@ -2636,7 +2655,10 @@ function renderDirectionTable(){
   const filtered = filterDate ? _content.filter(c=>c.shootDate===filterDate) : _content;
   if (!filtered.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs for ${formatDate(filterDate)}.</h3><p>Pick a different shoot date, or choose "All shoot dates".</p></div>`; return; }
   const list = filtered.slice().sort((a,b)=>(a.status==='Shoot done')-(b.status==='Shoot done') || (a.shootDate||'').localeCompare(b.shootDate||''));
-  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>`
+  const todayStr = todayISO();
+  wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>{
+    const isOverdue = c.status!=='Shoot done' && c.shootDate && c.shootDate<todayStr;
+    return `
     <div class="task-card">
       <div class="task-top">
         <div>
@@ -2644,17 +2666,26 @@ function renderDirectionTable(){
           <div class="task-meta">
             <span class="pill ${contentStatusPillClass(c.status)}">${escHtml(c.status||'Pending')}</span>
             <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
+            ${isOverdue ? `<span class="pill pill-status-pending"><i class="fa-solid fa-triangle-exclamation"></i> Shoot date passed</span>` : ''}
             ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
             ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
             ${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-file-lines"></i> Script</button>` : `<span><i class="fa-solid fa-file-circle-xmark"></i> No script</span>`}
           </div>
         </div>
         ${canEdit ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+          ${isOverdue ? `<button class="mini-btn" onclick="togglePostponeForm('${c.id}')" title="Postpone to another shoot date"><i class="fa-solid fa-calendar-days"></i> Postpone</button>` : ''}
           <select class="input" style="width:auto;padding:.3rem .5rem;font-size:.75rem;" onchange="updateDirectionStatus('${c.id}', this.value)">
             ${['Pending','Shoot done'].map(s=>`<option value="${s}" ${(c.status||'Pending')===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>` : ''}
       </div>
+      ${canEdit ? `
+      <div id="postponeForm-${c.id}" style="display:none;gap:.5rem;align-items:center;margin-top:.4rem;padding-top:.4rem;border-top:1px dashed var(--border);">
+        <label style="font-size:.75rem;color:var(--text-2);white-space:nowrap;">New shoot date</label>
+        <input class="input" type="date" id="postponeDate-${c.id}" style="width:auto;padding:.3rem .5rem;font-size:.8rem;">
+        <button class="mini-btn" style="color:var(--success);" onclick="postponeContentShoot('${c.id}')" title="Save"><i class="fa-solid fa-check"></i></button>
+        <button class="mini-btn" onclick="togglePostponeForm('${c.id}')" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+      </div>` : ''}
       <div class="task-desc">
         <label style="font-size:.72rem;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Additional Info</label>
         ${canEdit ? `
@@ -2668,8 +2699,8 @@ function renderDirectionTable(){
           </div>` : `
           <p style="font-size:.83rem;color:var(--text-2);margin-top:.25rem;">${c.additionalInfo ? escHtml(c.additionalInfo) : 'No additional info yet.'}</p>`}
       </div>
-    </div>`
-  ).join('') + `</div>`;
+    </div>`;
+  }).join('') + `</div>`;
 }
 
 // ─── DIRECTION EXPORT (PDF / Excel) ───
@@ -2781,11 +2812,51 @@ window.updateDirectionStatus = async function(id, newStatus){
     showToast('Status updated.');
     logActivity('updated','direction', cName, `Status set to ${newStatus}`);
     await ensureContentLoaded();
+    renderDirectionStats();
     renderDirectionTable();
     // If this shoot was just marked done, push it into Video Editing right away
     // so the video editing team sees it without needing to revisit this page.
     await ensureVideosLoaded();
     await syncContentToVideos();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// Shows/hides the inline "new shoot date" picker for a content brief whose
+// scheduled shoot date has already passed without the shoot happening.
+window.togglePostponeForm = function(id){
+  const formEl = document.getElementById('postponeForm-'+id);
+  if (!formEl) return;
+  const opening = formEl.style.display === 'none' || !formEl.style.display;
+  formEl.style.display = opening ? 'flex' : 'none';
+  if (opening) {
+    const c = _content.find(x=>x.id===id);
+    const dateInput = document.getElementById('postponeDate-'+id);
+    if (dateInput) {
+      // Default to the day after the missed shoot date rather than leaving it blank.
+      dateInput.value = c?.shootDate || '';
+      dateInput.min = todayISO();
+      dateInput.focus();
+    }
+  }
+};
+
+// Moves a content brief to a new shoot date after the original one passed
+// without the shoot happening. Does not touch status — Direction still marks
+// it "Shoot done" once the (new) shoot actually wraps.
+window.postponeContentShoot = async function(id){
+  if (!canManage('direction')) { showToast('Only the Direction team can postpone a shoot.', true); return; }
+  const dateInput = document.getElementById('postponeDate-'+id);
+  const newDate = dateInput?.value;
+  if (!newDate) { showToast('Pick a new shoot date first.', true); return; }
+  const c = _content.find(x=>x.id===id);
+  const oldDate = c?.shootDate;
+  const cName = c?.gameName || id;
+  try {
+    await updateDoc(doc(db,'ada_content',id), { shootDate: newDate });
+    showToast('Shoot postponed to '+formatDate(newDate)+'.');
+    logActivity('updated','direction', cName, `Shoot postponed from ${formatDate(oldDate)} to ${formatDate(newDate)}`);
+    await ensureContentLoaded();
+    await loadDirectionPage();
   } catch(err) { showToast('Error: '+err.message, true); }
 };
 
