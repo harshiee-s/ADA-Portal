@@ -262,6 +262,17 @@ select.dept-select-inline{padding:.28rem .5rem;font-size:.72rem;border-radius:va
 .dept-checks-compact .dept-check-item{padding:.2rem .5rem;font-size:.68rem;}
 
 .asset-thumb{width:42px;height:42px;object-fit:cover;border-radius:8px;border:none;box-shadow:var(--shadow-flat);cursor:pointer;display:block;transition:var(--t);}
+
+.profiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;}
+.profile-card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);padding:1.2rem 1rem;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.55rem;}
+.profile-avatar-wrap{position:relative;width:88px;height:88px;}
+.profile-avatar{width:88px;height:88px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow-flat);display:flex;align-items:center;justify-content:center;background:var(--bg);}
+.profile-avatar-empty{color:var(--text-3);font-size:1.8rem;}
+.profile-avatar-edit{position:absolute;bottom:-2px;right:-2px;width:30px;height:30px;border-radius:50%;background:var(--bg);box-shadow:var(--shadow-sm);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:var(--t);}
+.profile-avatar-edit:hover{box-shadow:var(--shadow-md);}
+.profile-name-input{width:100%;text-align:center;font-weight:700;font-size:.92rem;color:var(--heading);padding:.5rem .6rem;}
+.profile-meta{display:flex;flex-wrap:wrap;gap:.3rem;justify-content:center;}
+.profile-email{font-size:.72rem;color:var(--text-3);word-break:break-all;}
 .asset-thumb:hover{transform:scale(1.08);box-shadow:var(--shadow-sm);}
 .asset-thumb-empty{width:42px;height:42px;border-radius:8px;border:none;box-shadow:var(--shadow-inset-sm);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:.85rem;}
 .img-lightbox{position:fixed;inset:0;background:rgba(10,22,40,.85);z-index:9998;display:none;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out;}
@@ -354,6 +365,7 @@ body.no-scroll{overflow:hidden;}
     <div class="nav-group">
       <div class="nav-item active" data-page="dashboard"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></div>
       <div class="nav-item" data-page="users" id="navUsers"><i class="fa-solid fa-users"></i><span>Users</span></div>
+      <div class="nav-item" data-page="profiles" id="navProfiles"><i class="fa-solid fa-id-badge"></i><span>Crew Profiles</span></div>
       <div class="nav-item" data-page="items" id="navItems"><i class="fa-solid fa-box"></i><span>Items</span></div>
       <div class="nav-item" data-page="locations" id="navLocations"><i class="fa-solid fa-location-dot"></i><span>Locations</span></div>
       <div class="nav-item" data-page="clients" id="navClients"><i class="fa-solid fa-building"></i><span>Clients</span></div>
@@ -371,9 +383,12 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="activitylog" id="navActivityLog"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity Log</span></div>
       <div class="nav-item logout-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
     </div>
-    <div class="sidebar-footer">
-      <strong>Welcome</strong>
-      <span id="sidebarUserName">—</span>
+    <div class="sidebar-footer" style="display:flex;align-items:center;gap:.6rem;">
+      <img id="sidebarUserAvatar" src="" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow-flat);display:none;flex-shrink:0;">
+      <div style="min-width:0;">
+        <strong>Welcome</strong>
+        <span id="sidebarUserName">—</span>
+      </div>
     </div>
   </aside>
 
@@ -404,6 +419,8 @@ body.no-scroll{overflow:hidden;}
         </div>
       </div>
       <span class="role-badge" id="roleBadgeText">ADMIN</span>
+      <img id="headerUserAvatar" src="" alt="" style="width:34px;height:34px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow-flat);display:none;flex-shrink:0;">
+      <div id="headerUserAvatarEmpty" style="width:34px;height:34px;border-radius:50%;box-shadow:var(--shadow-inset-sm);display:none;align-items:center;justify-content:center;color:var(--text-3);font-size:.85rem;flex-shrink:0;"><i class="fa-solid fa-user"></i></div>
     </div>
   </header>
 
@@ -437,6 +454,13 @@ body.no-scroll{overflow:hidden;}
       <div class="card panel">
         <div class="panel-head"><h2>All Logins</h2><p>Everyone with access to this portal.</p></div>
         <div id="usersTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-profiles">
+      <div class="card panel">
+        <div class="panel-head"><h2>Crew Profiles</h2><p>Add a profile photo and edit each person's display name. Click the camera icon on a photo to change it.</p></div>
+        <div id="profilesGridWrap"></div>
       </div>
     </section>
 
@@ -1047,6 +1071,7 @@ function canManage(section){
 function canViewPage(section){
   if (roleIsAdmin()) return true;
   if (section === 'users') return false;
+  if (section === 'profiles') return false;
   if (section === 'videoediting') return isVideoEditing();
   if (section === 'direction') return isDirectionTeam();
   if (section === 'activitylog') return false; // admin-only audit trail
@@ -1058,6 +1083,7 @@ function canViewPage(section){
 const pageConfig = {
   dashboard:{t:'Dashboard', s:'Overview of crew finances and assets.'},
   users:{t:'Users', s:'Manage portal logins.'},
+  profiles:{t:'Crew Profiles', s:'Edit names and profile photos.'},
   items:{t:'Items', s:'Master list of asset types.'},
   locations:{t:'Locations', s:'Where assets are stored or deployed.'},
   clients:{t:'Clients', s:'Tag expenses and revenue to a client.'},
@@ -1196,6 +1222,18 @@ function launchAdminApp(user, profile){
   setTimeout(()=>{ document.getElementById('loginScreen').style.display='none'; }, 300);
   document.getElementById('appContent').classList.add('show-app');
   document.getElementById('sidebarUserName').textContent = profile.name || profile.email || user.email;
+  const sidebarAvatar = document.getElementById('sidebarUserAvatar');
+  const headerAvatar = document.getElementById('headerUserAvatar');
+  const headerAvatarEmpty = document.getElementById('headerUserAvatarEmpty');
+  if (profile.photoBase64) {
+    sidebarAvatar.src = profile.photoBase64; sidebarAvatar.style.display = '';
+    headerAvatar.src = profile.photoBase64; headerAvatar.style.display = '';
+    headerAvatarEmpty.style.display = 'none';
+  } else {
+    sidebarAvatar.style.display = 'none';
+    headerAvatar.style.display = 'none';
+    headerAvatarEmpty.style.display = 'flex';
+  }
 
   const isAdmin = profile.role === 'admin';
   const badge = document.getElementById('roleBadgeText');
@@ -1210,6 +1248,7 @@ function launchAdminApp(user, profile){
   // Department-based overrides (Asset Manager, Location Manager, Finance and
   // Operations) grant extra access — see canViewPage()/canManage() above.
   document.getElementById('navUsers').style.display = isAdmin ? '' : 'none';
+  document.getElementById('navProfiles').style.display = isAdmin ? '' : 'none';
   document.getElementById('navItems').style.display = canViewPage('items') ? '' : 'none';
   document.getElementById('navLocations').style.display = canViewPage('locations') ? '' : 'none';
   document.getElementById('navClients').style.display = canViewPage('clients') ? '' : 'none';
@@ -1264,7 +1303,7 @@ function launchAdminApp(user, profile){
 
 // ─── NAV ───
 window.showAdminPage = function(name){
-  const restrictedPages = ['users','items','locations','clients','pnl','videoediting','direction','activitylog'];
+  const restrictedPages = ['users','profiles','items','locations','clients','pnl','videoediting','direction','activitylog'];
   if (restrictedPages.includes(name) && !canViewPage(name)) name = 'dashboard';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -1274,7 +1313,7 @@ window.showAdminPage = function(name){
   document.getElementById('pageTitle').textContent = pageConfig[name].t;
   document.getElementById('pageSubtitle').textContent = pageConfig[name].s;
   const loaders = {
-    dashboard: loadDashboardPage, users: loadUsersPage, items: loadItemsPage,
+    dashboard: loadDashboardPage, users: loadUsersPage, profiles: loadProfilesPage, items: loadItemsPage,
     locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage, provisions: loadProvisionsPage,
     pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage, direction: loadDirectionPage,
@@ -1568,8 +1607,9 @@ async function loadUsersPage(){
     const snap = await getDocs(collection(db,'ada_users'));
     _users = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
     if (!_users.length) { wrap.innerHTML = `<div class="empty"><h3>No logins yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Action</th></tr></thead><tbody>
+    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th></th><th>Name</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Action</th></tr></thead><tbody>
       ${_users.map(u=>`<tr>
+        <td>${u.photoBase64 ? `<img class="asset-thumb" style="border-radius:50%;" src="${u.photoBase64}" alt="${escHtml(u.name)}">` : `<div class="asset-thumb-empty" style="border-radius:50%;"><i class="fa-solid fa-user"></i></div>`}</td>
         <td><strong>${escHtml(u.name)}</strong></td>
         <td><code>${escHtml(u.email)}</code></td>
         <td><span class="pill pill-${u.role}">${escHtml(u.role)}</span></td>
@@ -1630,6 +1670,103 @@ window.toggleUserStatus = async function(uid, newStatus){
     logActivity('updated','users', _users.find(u=>u.id===uid)?.name || uid, `Status set to ${newStatus}`);
     loadUsersPage();
   } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+// ─── CREW PROFILES (photo + name) ───
+async function loadProfilesPage(){
+  const wrap = document.getElementById('profilesGridWrap');
+  wrap.innerHTML = `<div class="empty"><h3><i class="fa-solid fa-spinner fa-spin"></i> Loading...</h3></div>`;
+  try {
+    const snap = await getDocs(collection(db,'ada_users'));
+    _users = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    renderProfilesGrid();
+  } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading profiles.</h3><p>${escHtml(err.message)}</p></div>`; }
+}
+
+function renderProfilesGrid(){
+  const wrap = document.getElementById('profilesGridWrap');
+  if (!wrap) return;
+  if (!_users.length) { wrap.innerHTML = `<div class="empty"><h3>No crew members yet.</h3><p>Add crew logins from the Users page.</p></div>`; return; }
+  wrap.innerHTML = `<div class="profiles-grid">${_users.map(u=>`
+    <div class="profile-card">
+      <div class="profile-avatar-wrap">
+        ${u.photoBase64
+          ? `<img class="profile-avatar" src="${u.photoBase64}" alt="${escHtml(u.name)}">`
+          : `<div class="profile-avatar profile-avatar-empty"><i class="fa-solid fa-user"></i></div>`}
+        <button class="profile-avatar-edit" type="button" onclick="document.getElementById('profilePhotoInput-${u.id}').click()" title="Change photo"><i class="fa-solid fa-camera"></i></button>
+        <input type="file" accept="image/*" id="profilePhotoInput-${u.id}" style="display:none;" onchange="onProfilePhotoChosen(event,'${u.id}')">
+      </div>
+      <input class="input profile-name-input" value="${escHtml(u.name)}" onchange="saveProfileName('${u.id}', this)" placeholder="Full name">
+      <div class="profile-meta">
+        <span class="pill pill-${u.role}">${escHtml(u.role)}</span>
+        ${userDepts(u).map(d=>deptBadge(d)).join('')}
+      </div>
+      <code class="profile-email">${escHtml(u.email)}</code>
+      ${u.photoBase64 ? `<button class="mini-btn" type="button" onclick="removeProfilePhoto('${u.id}')"><i class="fa-solid fa-trash"></i> Remove Photo</button>` : ''}
+    </div>
+  `).join('')}</div>`;
+}
+
+window.onProfilePhotoChosen = async function(e, uid){
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Please choose an image file.', true); e.target.value=''; return; }
+  if (file.size > 700*1024) { showToast('Photo must be under 700 KB. Try compressing it.', true); e.target.value=''; return; }
+  try {
+    const base64 = await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+    await updateDoc(doc(db,'ada_users',uid), { photoBase64: base64 });
+    showToast('Profile photo updated.');
+    logActivity('updated','users', _users.find(u=>u.id===uid)?.name || uid, 'Profile photo updated');
+    _users = _users.map(u=>u.id===uid ? {...u, photoBase64: base64} : u);
+    if (window.adaProfile && window.adaProfile.uid === uid) {
+      window.adaProfile.photoBase64 = base64;
+      const sidebarAvatar = document.getElementById('sidebarUserAvatar');
+      if (sidebarAvatar) { sidebarAvatar.src = base64; sidebarAvatar.style.display = ''; }
+      const headerAvatar = document.getElementById('headerUserAvatar');
+      const headerAvatarEmpty = document.getElementById('headerUserAvatarEmpty');
+      if (headerAvatar) { headerAvatar.src = base64; headerAvatar.style.display = ''; }
+      if (headerAvatarEmpty) headerAvatarEmpty.style.display = 'none';
+    }
+    renderProfilesGrid();
+  } catch(err) { showToast('Error: '+err.message, true); }
+  e.target.value='';
+};
+
+window.removeProfilePhoto = async function(uid){
+  if (!confirm('Remove this profile photo?')) return;
+  try {
+    await updateDoc(doc(db,'ada_users',uid), { photoBase64: '' });
+    showToast('Profile photo removed.');
+    logActivity('updated','users', _users.find(u=>u.id===uid)?.name || uid, 'Profile photo removed');
+    _users = _users.map(u=>u.id===uid ? {...u, photoBase64:''} : u);
+    if (window.adaProfile && window.adaProfile.uid === uid) {
+      window.adaProfile.photoBase64 = '';
+      const sidebarAvatar = document.getElementById('sidebarUserAvatar');
+      if (sidebarAvatar) sidebarAvatar.style.display = 'none';
+      const headerAvatar = document.getElementById('headerUserAvatar');
+      const headerAvatarEmpty = document.getElementById('headerUserAvatarEmpty');
+      if (headerAvatar) headerAvatar.style.display = 'none';
+      if (headerAvatarEmpty) headerAvatarEmpty.style.display = 'flex';
+    }
+    renderProfilesGrid();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
+
+window.saveProfileName = async function(uid, inputEl){
+  const name = inputEl.value.trim();
+  const u = _users.find(x=>x.id===uid);
+  if (!name) { showToast('Name cannot be empty.', true); if (u) inputEl.value = u.name; return; }
+  if (u && u.name === name) return;
+  try {
+    await updateDoc(doc(db,'ada_users',uid), { name });
+    showToast('Name updated.');
+    logActivity('updated','users', name, 'Name updated');
+    _users = _users.map(x=>x.id===uid ? {...x, name} : x);
+    if (window.adaProfile && window.adaProfile.uid===uid) {
+      window.adaProfile.name = name;
+      document.getElementById('sidebarUserName').textContent = name;
+    }
+  } catch(err) { showToast('Error: '+err.message, true); if (u) inputEl.value = u.name; }
 };
 
 function renderUserFormDeptChecks(){
