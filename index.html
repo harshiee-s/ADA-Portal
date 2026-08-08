@@ -380,6 +380,7 @@ body.no-scroll{overflow:hidden;}
       <div class="nav-item" data-page="payments"><i class="fa-solid fa-money-bill-transfer"></i><span>Crew Payments</span></div>
       <div class="nav-item" data-page="provisions"><i class="fa-solid fa-piggy-bank"></i><span>Provisions</span></div>
       <div class="nav-item" data-page="pnl" id="navPnl"><i class="fa-solid fa-chart-line"></i><span>P&amp;L Report</span></div>
+      <div class="nav-item" data-page="quizbuilder" id="navQuizBuilder"><i class="fa-solid fa-clipboard-question"></i><span>Quiz Builder</span></div>
       <div class="nav-item" data-page="activitylog" id="navActivityLog"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity Log</span></div>
       <div class="nav-item logout-item" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></div>
     </div>
@@ -691,6 +692,19 @@ body.no-scroll{overflow:hidden;}
           </div>
         </div>
         <p style="font-size:.83rem;color:var(--text-2);margin-bottom:.6rem;">Direction team only — review each content brief and mark the shoot done once it wraps. Marking a shoot done sends it on to the Video Editing team. Pick a shoot date above to focus on just that day, then export the briefs for that shoot.</p>
+        <div id="dirBulkPostponeBar" style="display:none;gap:.6rem;align-items:center;flex-wrap:wrap;background:var(--bg);box-shadow:var(--shadow-inset-sm);border-radius:var(--r-md);padding:.6rem .8rem;margin-bottom:.7rem;">
+          <span id="dirBulkSelectedCount" style="font-size:.82rem;font-weight:600;color:var(--gold);white-space:nowrap;">0 selected</span>
+          <label style="font-size:.75rem;color:var(--text-2);white-space:nowrap;">New shoot date</label>
+          <input class="input" type="date" id="dirBulkPostponeDate" style="width:auto;padding:.3rem .5rem;font-size:.8rem;">
+          <button class="btn btn-gold" style="padding:.4rem .8rem;font-size:.8rem;" onclick="postponeSelectedShoots()"><i class="fa-solid fa-calendar-days"></i> Postpone Selected</button>
+          <button class="btn btn-secondary" style="padding:.4rem .8rem;font-size:.8rem;" onclick="dirClearSelection()">Clear Selection</button>
+        </div>
+        <div id="dirSelectAllRow" style="display:none;margin-bottom:.5rem;">
+          <label style="display:flex;gap:.5rem;align-items:center;font-size:.8rem;color:var(--text-2);cursor:pointer;width:fit-content;">
+            <input type="checkbox" id="dirSelectAllCheckbox" style="width:auto;" onchange="dirToggleSelectAll(this.checked)">
+            Select all postponable briefs in view
+          </label>
+        </div>
         <div id="directionTableWrap"></div>
       </div>
     </section>
@@ -733,16 +747,21 @@ body.no-scroll{overflow:hidden;}
       <div class="card panel">
         <div class="panel-head">
           <h2>Expense History</h2>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-            <select class="input" id="expFilterCrew" style="width:auto;" onchange="loadExpensesPage()"><option value="">All crew</option></select>
-            <select class="input" id="expFilterClient" style="width:auto;" onchange="loadExpensesPage()"><option value="">All clients</option></select>
-            <select class="input" id="expFilterStatus" style="width:auto;" onchange="loadExpensesPage()">
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <select class="input" id="expFilterCrew" style="width:auto;" onchange="renderExpensesTable()"><option value="">All crew</option></select>
+            <select class="input" id="expFilterClient" style="width:auto;" onchange="renderExpensesTable()"><option value="">All clients</option></select>
+            <select class="input" id="expFilterStatus" style="width:auto;" onchange="renderExpensesTable()">
               <option value="">All statuses</option>
               <option value="pending">Pending</option>
               <option value="approved">Approved</option>
               <option value="rejected">Rejected</option>
             </select>
-            <button class="btn btn-secondary" onclick="exportExpensesExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+            <select class="input" id="expFilterCategory" style="width:auto;" onchange="renderExpensesTable()"><option value="">All categories</option></select>
+            <input class="input" type="date" id="expFilterFrom" style="width:auto;" onchange="renderExpensesTable()" title="From date">
+            <input class="input" type="date" id="expFilterTo" style="width:auto;" onchange="renderExpensesTable()" title="To date">
+            <button class="btn btn-secondary" onclick="clearExpenseFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
+            <button class="btn btn-secondary" onclick="exportExpensesPDF()"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+            <button class="btn btn-secondary" onclick="exportExpensesExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
           </div>
         </div>
         <div id="expensesTableWrap"></div>
@@ -799,7 +818,14 @@ body.no-scroll{overflow:hidden;}
       <div class="card panel">
         <div class="panel-head">
           <h2>Liability History</h2>
-          <button class="btn btn-secondary" onclick="exportLiabilityExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+            <select class="input" id="liabFilterCrew" style="width:auto;" onchange="renderLiabilityTable()"><option value="">All crew</option></select>
+            <input class="input" type="date" id="liabFilterFrom" style="width:auto;" onchange="renderLiabilityTable()" title="From date">
+            <input class="input" type="date" id="liabFilterTo" style="width:auto;" onchange="renderLiabilityTable()" title="To date">
+            <button class="btn btn-secondary" onclick="clearLiabilityFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear</button>
+            <button class="btn btn-secondary" onclick="exportLiabilityPDF()"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+            <button class="btn btn-secondary" onclick="exportLiabilityExcel()"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          </div>
         </div>
         <div id="liabilityTableWrap"></div>
       </div>
@@ -856,6 +882,13 @@ body.no-scroll{overflow:hidden;}
           <button class="btn btn-secondary" onclick="exportProvisionsExcel()"><i class="fa-solid fa-file-excel"></i> Export</button>
         </div>
         <div id="provisionsTableWrap"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-quizbuilder">
+      <div class="card" id="quizBuilderRoot" style="padding:0;overflow:hidden;">
+        <iframe id="quizBuilderFrame" src="quizbuilder.html" title="Quiz Builder"
+          style="width:100%;height:82vh;min-height:640px;border:none;display:block;border-radius:var(--r-lg);"></iframe>
       </div>
     </section>
 
@@ -980,8 +1013,9 @@ window.__creatingAdmin = false;
 window.__adminLaunched = false;
 let _users=[], _items=[], _locations=[], _clients=[], _assets=[], _expenses=[], _revenue=[], _liability=[], _payments=[], _provisions=[], _videos=[], _content=[];
 let veState = { selectedShootDate: '' };
-let dirState = { selectedShootDate: '' };
+let dirState = { selectedShootDate: '', selectedContentIds: new Set() };
 let _expensesVisible = [];
+let _liabilityVisible = [];
 let _tasks = [];
 let _activityLog = [];
 
@@ -1098,6 +1132,7 @@ const pageConfig = {
   payments:{t:'Crew Payments', s:'Payments made to crew members.'},
   provisions:{t:'Provisions', s:'Set aside funds from available revenue into the team available balance.'},
   pnl:{t:'P&L Report', s:'Revenue vs expenses over time.'},
+  quizbuilder:{t:'Quiz Builder', s:'Create and manage quizzes for the crew.'},
   activitylog:{t:'Activity Log', s:'Who changed what, and when — across the whole portal.'}
 };
 
@@ -1317,7 +1352,7 @@ window.showAdminPage = function(name){
     locations: loadLocationsPage, clients: loadClientsPage, assets: loadAssetsPage, tasks: loadTasksPage, expenses: loadExpensesPage,
     revenue: loadRevenuePage, liability: loadLiabilityPage, payments: loadPaymentsPage, provisions: loadProvisionsPage,
     pnl: loadPnLPage, videoediting: loadVideoEditingPage, content: loadContentPage, direction: loadDirectionPage,
-    activitylog: loadActivityLogPage
+    activitylog: loadActivityLogPage, quizbuilder: loadQuizBuilderPage
   };
   if (loaders[name]) loaders[name]();
 };
@@ -1387,6 +1422,13 @@ function expenseCrewLabel(x){
     return x.splits.map(s=>`${escHtml(s.crewName||crewName(s.crewId))} <span style="color:var(--text-3);">(${formatCurrency(s.amount)})</span>`).join(', ');
   }
   return x.crewId ? escHtml(x.crewName||crewName(x.crewId)) : '<span style="color:var(--text-3);">General</span>';
+}
+// Plain-text version of expenseCrewLabel (no HTML) — used for Excel/PDF exports.
+function expenseCrewNamesPlain(x){
+  if (Array.isArray(x.splits) && x.splits.length) {
+    return x.splits.map(s=>`${s.crewName||crewName(s.crewId)} (${formatCurrency(s.amount)})`).join(', ');
+  }
+  return x.crewId ? (x.crewName||crewName(x.crewId)) : 'General';
 }
 async function ensureClientsLoaded(){
   const snap = await getDocs(collection(db,'ada_clients'));
@@ -2743,6 +2785,7 @@ async function loadDirectionPage(){
   }).join('');
   if (prevSelection && dates.includes(prevSelection)) sel.value = prevSelection;
   else dirState.selectedShootDate = '';
+  dirState.selectedContentIds.clear();
   renderDirectionStats();
   renderDirectionLocationsTable();
   renderDirectionTable();
@@ -2763,6 +2806,7 @@ function renderDirectionStats(){
 
 window.onDirShootDateChange = function(){
   dirState.selectedShootDate = document.getElementById('dirShootDateSelect').value;
+  dirState.selectedContentIds.clear();
   renderDirectionTable();
 };
 
@@ -2787,30 +2831,40 @@ function renderDirectionLocationsTable(){
 function renderDirectionTable(){
   const wrap = document.getElementById('directionTableWrap');
   const canEdit = canManage('direction');
-  if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs yet.</h3><p>Nothing has been uploaded by the Content team yet.</p></div>`; return; }
+  if (!_content.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs yet.</h3><p>Nothing has been uploaded by the Content team yet.</p></div>`; dirUpdateBulkBar(); return; }
   const filterDate = dirState.selectedShootDate;
   const filtered = filterDate ? _content.filter(c=>c.shootDate===filterDate) : _content;
-  if (!filtered.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs for ${formatDate(filterDate)}.</h3><p>Pick a different shoot date, or choose "All shoot dates".</p></div>`; return; }
+  if (!filtered.length) { wrap.innerHTML = `<div class="empty"><h3>No content briefs for ${formatDate(filterDate)}.</h3><p>Pick a different shoot date, or choose "All shoot dates".</p></div>`; dirUpdateBulkBar(); return; }
   const list = filtered.slice().sort((a,b)=>(a.status==='Shoot done')-(b.status==='Shoot done') || (a.shootDate||'').localeCompare(b.shootDate||''));
   const todayStr = todayISO();
+  // Only briefs not yet marked "Shoot done" can be postponed / bulk-selected.
+  const eligibleIds = list.filter(c=>c.status!=='Shoot done').map(c=>c.id);
+  const selectAllRow = document.getElementById('dirSelectAllRow');
+  if (selectAllRow) selectAllRow.style.display = (canEdit && eligibleIds.length > 0) ? '' : 'none';
+  // Drop any selected ids that have fallen out of the current view.
+  [...dirState.selectedContentIds].forEach(id=>{ if (!eligibleIds.includes(id)) dirState.selectedContentIds.delete(id); });
   wrap.innerHTML = `<div style="display:flex;flex-direction:column;gap:.6rem;">` + list.map(c=>{
     const isOverdue = c.status!=='Shoot done' && c.shootDate && c.shootDate<todayStr;
+    const canSelect = canEdit && c.status!=='Shoot done';
     return `
     <div class="task-card">
       <div class="task-top">
-        <div>
-          <div class="task-title">${escHtml(c.gameName)}</div>
-          <div class="task-meta">
-            <span class="pill ${contentStatusPillClass(c.status)}">${escHtml(c.status||'Pending')}</span>
-            <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
-            ${isOverdue ? `<span class="pill pill-status-pending"><i class="fa-solid fa-triangle-exclamation"></i> Shoot date passed</span>` : ''}
-            ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
-            ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
-            ${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-file-lines"></i> Script</button>` : `<span><i class="fa-solid fa-file-circle-xmark"></i> No script</span>`}
+        <div style="display:flex;gap:.6rem;align-items:flex-start;">
+          ${canSelect ? `<input type="checkbox" class="dirContentCheckbox" data-id="${c.id}" style="width:auto;margin-top:.3rem;" ${dirState.selectedContentIds.has(c.id)?'checked':''} onchange="dirToggleSelect('${c.id}', this.checked)" title="Select for bulk postpone">` : ''}
+          <div>
+            <div class="task-title">${escHtml(c.gameName)}</div>
+            <div class="task-meta">
+              <span class="pill ${contentStatusPillClass(c.status)}">${escHtml(c.status||'Pending')}</span>
+              <span><i class="fa-solid fa-calendar-day"></i> Shoot: ${formatDate(c.shootDate)}</span>
+              ${isOverdue ? `<span class="pill pill-status-pending"><i class="fa-solid fa-triangle-exclamation"></i> Shoot date passed</span>` : ''}
+              ${c.props ? `<span><i class="fa-solid fa-boxes-stacked"></i> ${escHtml(c.props)}</span>` : ''}
+              ${c.refLink ? `<a href="${escHtml(c.refLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-link"></i> Reference Video</a>` : ''}
+              ${c.scriptBase64 ? `<button class="mini-btn" onclick="viewContentScript('${c.id}')"><i class="fa-solid fa-file-lines"></i> Script</button>` : `<span><i class="fa-solid fa-file-circle-xmark"></i> No script</span>`}
+            </div>
           </div>
         </div>
         ${canEdit ? `<div style="display:flex;gap:.4rem;flex-wrap:wrap;">
-          ${isOverdue ? `<button class="mini-btn" onclick="togglePostponeForm('${c.id}')" title="Postpone to another shoot date"><i class="fa-solid fa-calendar-days"></i> Postpone</button>` : ''}
+          ${c.status!=='Shoot done' ? `<button class="mini-btn" onclick="togglePostponeForm('${c.id}')" title="Postpone to another shoot date"><i class="fa-solid fa-calendar-days"></i> Postpone</button>` : ''}
           <select class="input" style="width:auto;padding:.3rem .5rem;font-size:.75rem;" onchange="updateDirectionStatus('${c.id}', this.value)">
             ${['Pending','Shoot done'].map(s=>`<option value="${s}" ${(c.status||'Pending')===s?'selected':''}>${s}</option>`).join('')}
           </select>
@@ -2838,7 +2892,69 @@ function renderDirectionTable(){
       </div>
     </div>`;
   }).join('') + `</div>`;
+  const selectAllCb = document.getElementById('dirSelectAllCheckbox');
+  if (selectAllCb) selectAllCb.checked = eligibleIds.length > 0 && eligibleIds.every(id=>dirState.selectedContentIds.has(id));
+  dirUpdateBulkBar();
 }
+
+// ─── BULK POSTPONE (select multiple briefs, postpone them all at once) ───
+function dirUpdateBulkBar(){
+  const bar = document.getElementById('dirBulkPostponeBar');
+  const countEl = document.getElementById('dirBulkSelectedCount');
+  const n = dirState.selectedContentIds.size;
+  if (bar) bar.style.display = n > 0 ? 'flex' : 'none';
+  if (countEl) countEl.textContent = `${n} selected`;
+}
+
+window.dirToggleSelect = function(id, checked){
+  if (checked) dirState.selectedContentIds.add(id); else dirState.selectedContentIds.delete(id);
+  const selectAllCb = document.getElementById('dirSelectAllCheckbox');
+  if (selectAllCb) {
+    const allBoxes = [...document.querySelectorAll('.dirContentCheckbox')];
+    selectAllCb.checked = allBoxes.length > 0 && allBoxes.every(cb=>cb.checked);
+  }
+  dirUpdateBulkBar();
+};
+
+window.dirToggleSelectAll = function(checked){
+  document.querySelectorAll('.dirContentCheckbox').forEach(cb=>{
+    cb.checked = checked;
+    if (checked) dirState.selectedContentIds.add(cb.dataset.id); else dirState.selectedContentIds.delete(cb.dataset.id);
+  });
+  dirUpdateBulkBar();
+};
+
+window.dirClearSelection = function(){
+  dirState.selectedContentIds.clear();
+  document.querySelectorAll('.dirContentCheckbox').forEach(cb=>{ cb.checked = false; });
+  const selectAllCb = document.getElementById('dirSelectAllCheckbox');
+  if (selectAllCb) selectAllCb.checked = false;
+  dirUpdateBulkBar();
+};
+
+// Postpones every selected content brief to the same new shoot date in one go,
+// instead of opening each brief's own Postpone form one at a time.
+window.postponeSelectedShoots = async function(){
+  if (!canManage('direction')) { showToast('Only the Direction team can postpone a shoot.', true); return; }
+  const ids = [...dirState.selectedContentIds];
+  if (!ids.length) { showToast('Select at least one content brief first.', true); return; }
+  const dateInput = document.getElementById('dirBulkPostponeDate');
+  const newDate = dateInput?.value;
+  if (!newDate) { showToast('Pick a new shoot date first.', true); return; }
+  try {
+    await Promise.all(ids.map(id=>{
+      const c = _content.find(x=>x.id===id);
+      const oldDate = c?.shootDate;
+      const cName = c?.gameName || id;
+      return updateDoc(doc(db,'ada_content',id), { shootDate: newDate })
+        .then(()=>logActivity('updated','direction', cName, `Shoot postponed from ${formatDate(oldDate)} to ${formatDate(newDate)}`));
+    }));
+    showToast(`Postponed ${ids.length} shoot${ids.length===1?'':'s'} to ${formatDate(newDate)}.`);
+    dirState.selectedContentIds.clear();
+    await ensureContentLoaded();
+    await loadDirectionPage();
+  } catch(err) { showToast('Error: '+err.message, true); }
+};
 
 // ─── DIRECTION EXPORT (PDF / Excel) ───
 // Exports the content briefs currently in view on the Direction "Shoot Review"
@@ -2969,7 +3085,7 @@ window.togglePostponeForm = function(id){
     const c = _content.find(x=>x.id===id);
     const dateInput = document.getElementById('postponeDate-'+id);
     if (dateInput) {
-      // Default to the day after the missed shoot date rather than leaving it blank.
+      // Default to the current shoot date rather than leaving it blank.
       dateInput.value = c?.shootDate || '';
       dateInput.min = todayISO();
       dateInput.focus();
@@ -2977,9 +3093,9 @@ window.togglePostponeForm = function(id){
   }
 };
 
-// Moves a content brief to a new shoot date after the original one passed
-// without the shoot happening. Does not touch status — Direction still marks
-// it "Shoot done" once the (new) shoot actually wraps.
+// Moves a content brief to a new shoot date — whether it's being rescheduled
+// ahead of time or postponed after the original date passed. Does not touch
+// status — Direction still marks it "Shoot done" once the (new) shoot wraps.
 window.postponeContentShoot = async function(id){
   if (!canManage('direction')) { showToast('Only the Direction team can postpone a shoot.', true); return; }
   const dateInput = document.getElementById('postponeDate-'+id);
@@ -3091,49 +3207,80 @@ async function loadExpensesPage(){
     clientSel.value = prevExpClient;
     filterClientSel.value = prevFilterClient;
 
-    const filterStatusSel = document.getElementById('expFilterStatus');
+    const filterCategorySel = document.getElementById('expFilterCategory');
+    if (!filterCategorySel.options.length || filterCategorySel.options.length === 1) {
+      const categoryOptions = ['Equipment','Travel','Software','Ads & Promotion','Food','Misc'];
+      filterCategorySel.innerHTML = '<option value="">All categories</option>' + categoryOptions.map(c=>`<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+    }
 
     const snap = await getDocs(collection(db,'ada_expenses'));
     _expenses = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const filterClient = filterClientSel.value;
-    const filterCrew = filterSel.value;
-    const filterStatus = filterStatusSel.value;
-    // Crew members can now view everyone's expenses, same as admin —
-    // they just can't add/edit/delete anything that isn't their own, and
-    // only approved expenses count toward totals elsewhere in the app.
-    let list = filterCrew ? _expenses.filter(x=>expenseCrewIds(x).includes(filterCrew)) : _expenses;
-    if (filterClient) list = list.filter(x=>x.clientId===filterClient);
-    if (filterStatus) list = list.filter(x=>expenseStatus(x)===filterStatus);
-    _expensesVisible = list;
-    if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses recorded yet.</h3></div>`; return; }
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Client</th><th>Description</th><th>Bill</th><th>Status</th><th></th></tr></thead><tbody>
-      ${list.map(x=>{
-        const status = expenseStatus(x);
-        const isOwner = x.crewId === currentUid;
-        const canModify = isAdminNow || (isOwner && status !== 'approved');
-        const statusPill = `<span class="pill pill-${status}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>`;
-        const approveRejectBtns = isAdminNow ? `
-          ${status!=='approved' ? `<button class="mini-btn" onclick="setExpenseStatus('${x.id}','approved')"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
-          ${status!=='rejected' ? `<button class="mini-btn mini-btn-danger" onclick="setExpenseStatus('${x.id}','rejected')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
-        ` : '';
-        return `<tr>
-        <td>${formatDate(x.date)}</td>
-        <td><strong>${formatCurrency(x.amount)}</strong></td>
-        <td>${escHtml(x.category||'—')}</td>
-        <td>${expenseCrewLabel(x)}</td>
-        <td>${x.clientId ? escHtml(x.clientName||clientNameOf(x.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
-        <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
-        <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
-        <td>${statusPill}</td>
-        <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
-          ${approveRejectBtns}
-          ${canModify ? `<button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
-          <button class="mini-btn mini-btn-danger" onclick="deleteExpense('${x.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
-        </td>
-      </tr>`;}).join('')}
-    </tbody></table></div>`;
+    renderExpensesTable();
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading expenses.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
+// Applies the current filter selections to the already-loaded _expenses list
+// and re-renders the table. Purely local — no network calls — so every
+// filter change (crew, client, status, category, date range) is instant and
+// can never race with an in-flight loadExpensesPage() reload.
+window.renderExpensesTable = function(){
+  const wrap = document.getElementById('expensesTableWrap');
+  if (!wrap) return;
+  const isAdminNow = canManage('expenses');
+  const currentUid = window.adaCurrentUser?.uid || null;
+  const filterCrew = document.getElementById('expFilterCrew')?.value || '';
+  const filterClient = document.getElementById('expFilterClient')?.value || '';
+  const filterStatus = document.getElementById('expFilterStatus')?.value || '';
+  const filterCategory = document.getElementById('expFilterCategory')?.value || '';
+  const filterFrom = document.getElementById('expFilterFrom')?.value || '';
+  const filterTo = document.getElementById('expFilterTo')?.value || '';
+  // Crew members can view everyone's expenses, same as admin — they just
+  // can't add/edit/delete anything that isn't their own, and only approved
+  // expenses count toward totals elsewhere in the app.
+  let list = filterCrew ? _expenses.filter(x=>expenseCrewIds(x).includes(filterCrew)) : _expenses.slice();
+  if (filterClient) list = list.filter(x=>x.clientId===filterClient);
+  if (filterStatus) list = list.filter(x=>expenseStatus(x)===filterStatus);
+  if (filterCategory) list = list.filter(x=>(x.category||'')===filterCategory);
+  if (filterFrom) list = list.filter(x=>(x.date||'') >= filterFrom);
+  if (filterTo) list = list.filter(x=>(x.date||'') <= filterTo);
+  _expensesVisible = list;
+  if (!_expenses.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses recorded yet.</h3></div>`; return; }
+  if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No expenses match these filters.</h3><p>Try clearing a filter to widen the search.</p></div>`; return; }
+  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Amount</th><th>Category</th><th>Crew</th><th>Client</th><th>Description</th><th>Bill</th><th>Status</th><th></th></tr></thead><tbody>
+    ${list.map(x=>{
+      const status = expenseStatus(x);
+      const isOwner = x.crewId === currentUid;
+      const canModify = isAdminNow || (isOwner && status !== 'approved');
+      const statusPill = `<span class="pill pill-${status}">${status.charAt(0).toUpperCase()+status.slice(1)}</span>`;
+      const approveRejectBtns = isAdminNow ? `
+        ${status!=='approved' ? `<button class="mini-btn" onclick="setExpenseStatus('${x.id}','approved')"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
+        ${status!=='rejected' ? `<button class="mini-btn mini-btn-danger" onclick="setExpenseStatus('${x.id}','rejected')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+      ` : '';
+      return `<tr>
+      <td>${formatDate(x.date)}</td>
+      <td><strong>${formatCurrency(x.amount)}</strong></td>
+      <td>${escHtml(x.category||'—')}</td>
+      <td>${expenseCrewLabel(x)}</td>
+      <td>${x.clientId ? escHtml(x.clientName||clientNameOf(x.clientId)) : '<span style="color:var(--text-3);">—</span>'}</td>
+      <td style="font-size:.8rem;max-width:220px;">${escHtml(x.description||'—')}</td>
+      <td>${x.billBase64 ? `<button class="mini-btn" onclick="viewBill('${x.id}')"><i class="fa-solid fa-eye"></i> View</button>` : '—'}</td>
+      <td>${statusPill}</td>
+      <td style="display:flex;gap:.3rem;flex-wrap:wrap;">
+        ${approveRejectBtns}
+        ${canModify ? `<button class="mini-btn" onclick="editExpense('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="mini-btn mini-btn-danger" onclick="deleteExpense('${x.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+      </td>
+    </tr>`;}).join('')}
+  </tbody></table></div>`;
+};
+window.clearExpenseFilters = function(){
+  document.getElementById('expFilterCrew').value = '';
+  document.getElementById('expFilterClient').value = '';
+  document.getElementById('expFilterStatus').value = '';
+  document.getElementById('expFilterCategory').value = '';
+  document.getElementById('expFilterFrom').value = '';
+  document.getElementById('expFilterTo').value = '';
+  renderExpensesTable();
+};
 
 // ─── SPLIT EXPENSE ROW MANAGEMENT (Add Expense form) ───
 let _expenseSplitRows = []; // array of row element ids currently in the split UI
@@ -3354,6 +3501,50 @@ window.exportExpensesExcel = function(){
   XLSX.writeFile(wb, 'ada_expenses.xlsx');
 };
 
+// Exports whatever is currently visible in the Expense History table
+// (i.e. respects the crew/client/status/category/date filters). The heading
+// is the selected crew member's name, or "All Expense" when no crew filter
+// is applied.
+window.exportExpensesPDF = function(){
+  const rows_source = _expensesVisible;
+  if (!rows_source.length) { showToast('No expenses to export.', true); return; }
+  if (!window.jspdf) { showToast('PDF library failed to load.', true); return; }
+  const filterCrew = document.getElementById('expFilterCrew')?.value || '';
+  const heading = filterCrew ? crewName(filterCrew) : 'All Expense';
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF();
+
+  docPdf.setFont('helvetica','bold');
+  docPdf.setFontSize(16);
+  docPdf.text(heading, 14, 18);
+  docPdf.setFont('helvetica','normal');
+  docPdf.setFontSize(10);
+  docPdf.setTextColor(120);
+  docPdf.text('Expense History', 14, 25);
+
+  const body = rows_source.map(x=>[
+    formatDate(x.date),
+    formatCurrency(x.amount),
+    x.category||'',
+    expenseCrewNamesPlain(x),
+    x.clientId ? (x.clientName||clientNameOf(x.clientId)) : '—',
+    expenseStatus(x).charAt(0).toUpperCase()+expenseStatus(x).slice(1),
+    x.description||''
+  ]);
+  const head = [['Date','Amount','Category','Crew','Client','Status','Description']];
+
+  docPdf.autoTable({
+    startY: 32,
+    head,
+    body,
+    styles:{ fontSize:9, cellPadding:3, valign:'top' },
+    headStyles:{ fillColor:[74,85,104], textColor:255 }
+  });
+
+  const fname = filterCrew ? `expenses_${crewName(filterCrew).replace(/\s+/g,'_')}.pdf` : 'expenses_all.pdf';
+  docPdf.save(fname);
+};
+
 // ═══════════════════ REVENUE ═══════════════════
 async function loadRevenuePage(){
   const wrap = document.getElementById('revenueTableWrap');
@@ -3463,26 +3654,50 @@ async function loadLiabilityPage(){
   try {
     await ensureUsersLoaded();
     document.getElementById('liabCrew').innerHTML = crewOptionsHtml('');
+    const filterCrewSel = document.getElementById('liabFilterCrew');
+    const prevFilterCrew = filterCrewSel.value;
+    filterCrewSel.innerHTML = '<option value="">All crew</option>' + crewOptionsHtml('').replace('<option value="">— Select Crew —</option>','');
+    filterCrewSel.value = prevFilterCrew;
     await renderBalanceGrid('liabilityBalanceGrid');
     await renderAvailableBalanceGrid('availableBalanceGrid');
     const snap = await getDocs(collection(db,'ada_liability'));
     _liability = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    if (!_liability.length) { wrap.innerHTML = `<div class="empty"><h3>No liability recorded yet.</h3></div>`; return; }
-    const canEditLiability = canManage('liability');
-    wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Description</th>${canEditLiability?'<th></th>':''}</tr></thead><tbody>
-      ${_liability.map(l=>`<tr>
-        <td>${formatDate(l.date)}</td>
-        <td>${escHtml(l.crewName||crewName(l.crewId))}</td>
-        <td><strong>${formatCurrency(l.amount)}</strong></td>
-        <td style="font-size:.8rem;">${escHtml(l.description||'—')}</td>
-        ${canEditLiability ? `<td style="display:flex;gap:.3rem;">
-          <button class="mini-btn" onclick="editLiability('${l.id}')"><i class="fa-solid fa-pen"></i></button>
-          <button class="mini-btn mini-btn-danger" onclick="deleteLiability('${l.id}')"><i class="fa-solid fa-trash"></i></button>
-        </td>` : ''}
-      </tr>`).join('')}
-    </tbody></table></div>`;
+    renderLiabilityTable();
   } catch(err) { wrap.innerHTML = `<div class="empty"><h3>Error loading liability.</h3><p>${escHtml(err.message)}</p></div>`; }
 }
+window.renderLiabilityTable = function(){
+  const wrap = document.getElementById('liabilityTableWrap');
+  if (!wrap) return;
+  const filterCrew = document.getElementById('liabFilterCrew')?.value || '';
+  const filterFrom = document.getElementById('liabFilterFrom')?.value || '';
+  const filterTo = document.getElementById('liabFilterTo')?.value || '';
+  let list = _liability.slice();
+  if (filterCrew) list = list.filter(l=>l.crewId===filterCrew);
+  if (filterFrom) list = list.filter(l=>(l.date||'') >= filterFrom);
+  if (filterTo) list = list.filter(l=>(l.date||'') <= filterTo);
+  _liabilityVisible = list;
+  if (!_liability.length) { wrap.innerHTML = `<div class="empty"><h3>No liability recorded yet.</h3></div>`; return; }
+  if (!list.length) { wrap.innerHTML = `<div class="empty"><h3>No liability entries match these filters.</h3></div>`; return; }
+  const canEditLiability = canManage('liability');
+  wrap.innerHTML = `<div class="table-wrap"><table><thead><tr><th>Date</th><th>Crew</th><th>Amount</th><th>Description</th>${canEditLiability?'<th></th>':''}</tr></thead><tbody>
+    ${list.map(l=>`<tr>
+      <td>${formatDate(l.date)}</td>
+      <td>${escHtml(l.crewName||crewName(l.crewId))}</td>
+      <td><strong>${formatCurrency(l.amount)}</strong></td>
+      <td style="font-size:.8rem;">${escHtml(l.description||'—')}</td>
+      ${canEditLiability ? `<td style="display:flex;gap:.3rem;">
+        <button class="mini-btn" onclick="editLiability('${l.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="mini-btn mini-btn-danger" onclick="deleteLiability('${l.id}')"><i class="fa-solid fa-trash"></i></button>
+      </td>` : ''}
+    </tr>`).join('')}
+  </tbody></table></div>`;
+};
+window.clearLiabilityFilters = function(){
+  document.getElementById('liabFilterCrew').value = '';
+  document.getElementById('liabFilterFrom').value = '';
+  document.getElementById('liabFilterTo').value = '';
+  renderLiabilityTable();
+};
 let _editingLiabilityId = null;
 window.editLiability = function(id){
   if (!canManage('liability')) return;
@@ -3536,12 +3751,53 @@ window.deleteLiability = async function(id){
   catch(err) { showToast('Error: '+err.message, true); }
 };
 window.exportLiabilityExcel = function(){
-  if (!_liability.length) { showToast('No liability entries to export.', true); return; }
-  const rows = _liability.map(l=>({ Date:l.date, Crew:l.crewName||crewName(l.crewId), Amount:l.amount, Description:l.description||'' }));
+  const rows_source = _liabilityVisible || _liability;
+  if (!rows_source.length) { showToast('No liability entries to export.', true); return; }
+  const rows = rows_source.map(l=>({ Date:l.date, Crew:l.crewName||crewName(l.crewId), Amount:l.amount, Description:l.description||'' }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Liability');
   XLSX.writeFile(wb, 'ada_liability.xlsx');
+};
+
+// Exports whatever is currently visible in the Liability History table
+// (i.e. respects the crew/date filters). The heading is the selected crew
+// member's name, or "All Crew Liability" when no crew filter is applied.
+window.exportLiabilityPDF = function(){
+  const rows_source = _liabilityVisible || _liability;
+  if (!rows_source.length) { showToast('No liability entries to export.', true); return; }
+  if (!window.jspdf) { showToast('PDF library failed to load.', true); return; }
+  const filterCrew = document.getElementById('liabFilterCrew')?.value || '';
+  const heading = filterCrew ? crewName(filterCrew) : 'All Crew Liability';
+  const { jsPDF } = window.jspdf;
+  const docPdf = new jsPDF();
+
+  docPdf.setFont('helvetica','bold');
+  docPdf.setFontSize(16);
+  docPdf.text(heading, 14, 18);
+  docPdf.setFont('helvetica','normal');
+  docPdf.setFontSize(10);
+  docPdf.setTextColor(120);
+  docPdf.text('Liability History', 14, 25);
+
+  const body = rows_source.map(l=>[
+    formatDate(l.date),
+    l.crewName||crewName(l.crewId),
+    formatCurrency(l.amount),
+    l.description||''
+  ]);
+  const head = [['Date','Crew','Amount','Description']];
+
+  docPdf.autoTable({
+    startY: 32,
+    head,
+    body,
+    styles:{ fontSize:9, cellPadding:3, valign:'top' },
+    headStyles:{ fillColor:[74,85,104], textColor:255 }
+  });
+
+  const fname = filterCrew ? `liability_${crewName(filterCrew).replace(/\s+/g,'_')}.pdf` : 'liability_all.pdf';
+  docPdf.save(fname);
 };
 
 // ═══════════════════ PAYMENTS ═══════════════════
@@ -4011,6 +4267,13 @@ function usrGoToResult(nav){
     }, 450);
   }
 }
+
+// ═══════════════════ QUIZ BUILDER ═══════════════════
+// The Quiz Builder is a self-contained app (quizbuilder.html) embedded via
+// iframe in #page-quizbuilder — it has its own styling/script and runs
+// independently, so there's nothing to wire up here. Open to every
+// logged-in user (not in `restrictedPages`, no canViewPage check).
+function loadQuizBuilderPage(){}
 
 // ═══════════════════ ACTIVITY LOG ═══════════════════
 const ACTIVITY_TYPE_LABELS = {
